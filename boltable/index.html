@@ -105,11 +105,8 @@ h3{font-size:13px;font-weight:650;margin:4px 0 8px}
 <body>
 <!-- build:boltable -->
 <header class="top">
-  <div class="eyebrow">Bolt Food · Growth Analytics · Live · Weekly</div>
-  <h1>CZ City V2 Discount Setup — Impact Monitor</h1>
-  <p>Refreshes every week on Monday at 12pm (Europe/Prague).</p>
-  <div class="meta" id="meta-chips"></div>
-</header>
+    <h1>CZ City V2 Discount Setup — Impact Monitor</h1>
+  </header>
 
 <div class="toolbar">
   <label>Week<select id="f-week"></select></label>
@@ -607,7 +604,8 @@ function renderBannerAndStatic(){
   else b.className='wkbanner ok',b.innerHTML=`Showing complete week <b>${LABEL[wk]}</b> (${wk} → ${addDays(wk,6).toISOString().slice(0,10)}), compared WoW to ${prevWeek(wk)?LABEL[prevWeek(wk)]:'–'}.`;
 }
 function renderStatic(){
-  document.getElementById('meta-chips').innerHTML=[`Generated ${DATA.meta.generated_at}`,`Country: ${DATA.meta.country}`,`Vertical: ${DATA.meta.vertical}`,
+  const metaChips=document.getElementById('meta-chips');
+  if(metaChips)metaChips.innerHTML=[`Generated ${DATA.meta.generated_at}`,`Country: ${DATA.meta.country}`,`Vertical: ${DATA.meta.vertical}`,
     `Latest complete: ${LABEL[LATEST_COMPLETE]}`,`Finished order = '${DATA.meta.order_status_finished}'`].map(c=>`<span class="chip">${c}</span>`).join('');
   const defsList=document.getElementById('defs-list'), openList=document.getElementById('open-list');
   if(!defsList||!openList)return;
