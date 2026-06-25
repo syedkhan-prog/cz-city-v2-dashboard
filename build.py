@@ -19,6 +19,8 @@ def _render(tpl: str, data: dict, *, boltable: bool) -> str:
     html = tpl.replace("__DATA__", payload).replace("__CONFIG__", config)
     if boltable:
         html = BOLTABLE_OMIT.sub("", html)
+        if "<!-- build:boltable -->" not in html:
+            html = html.replace("<body>", "<body>\n<!-- build:boltable -->", 1)
     return html
 
 
