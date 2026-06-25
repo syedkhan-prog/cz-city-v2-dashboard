@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CZ City V2 Discount Setup — Impact Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef2f0;
+  --bg-subtle:radial-gradient(1100px 520px at 100% -8%, #dff7ec 0%, rgba(223,247,236,0) 58%), linear-gradient(160deg,#f5f9f7 0%,#e9f1ed 48%,#f2f8f5 100%);
+  --card:#ffffff;--ink:#0c1a14;--muted:#5a6b63;--muted-2:#94a59c;
+  --accent:#12b76a;--accent-2:#0e9f74;--accent-soft:#e7f8ef;--border:#e3eae7;--border-light:#eef3f1;
+  --header-from:#08120e;--header-to:#0f4a32;
+  --green:#079455;--green-bg:#e7f8ef;--green-bd:#9bedc2;
+  --yellow:#b54708;--yellow-bg:#fffaeb;--yellow-bd:#fedf89;
+  --red:#d92d20;--red-bg:#fef3f2;--red-bd:#fecdca;
+  --gray:#5a6b63;--gray-bg:#eef3f1;--gray-bd:#e3eae7;
+  --bolt:#7c3aed;--prov:#12b76a;
+  --shadow-sm:0 1px 2px rgba(8,26,18,.05);--shadow-md:0 8px 26px rgba(8,26,18,.07);--radius:14px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg-subtle);background-color:var(--bg);color:var(--ink);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+header.top{background:radial-gradient(820px 320px at 88% -50%, rgba(18,183,106,.55), rgba(18,183,106,0) 62%), linear-gradient(135deg,#08120e 0%, #0f4030 100%);color:#fff;padding:20px 28px 16px;box-shadow:0 4px 18px rgba(8,26,18,.22);position:relative}
+header.top::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,#12b76a,#34d186 45%,rgba(52,209,134,0))}
+header.top .eyebrow{font-size:10.5px;font-weight:650;letter-spacing:.14em;text-transform:uppercase;color:#6ee7b7}
+header.top h1{margin:5px 0 4px;font-size:22px;font-weight:700;letter-spacing:-.02em}
+header.top p{margin:0;font-size:12px;color:#cbd5e1;max-width:1040px}
+header.top .meta{margin-top:9px;display:flex;gap:7px;flex-wrap:wrap}
+header.top .chip{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#e2e8f0;padding:4px 10px;border-radius:20px;font-size:10.5px;font-weight:500}
+.toolbar{display:flex;gap:12px;align-items:flex-end;padding:11px 28px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);flex-wrap:wrap;position:sticky;top:0;z-index:30;box-shadow:var(--shadow-sm)}
+.toolbar label{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.toolbar select{padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;min-width:130px;background:#fff;color:var(--ink)}
+.toolbar select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(18,183,106,.16)}
+.toolbar .spacer{flex:1}
+.toolbar .btn{padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
+.toolbar .btn:hover{border-color:var(--accent);color:var(--accent)}
+.wkbanner{padding:6px 28px;font-size:11.5px;font-weight:600}
+.wkbanner.ok{background:var(--accent-soft);color:#0e7a4f;border-bottom:1px solid var(--green-bd)}
+.wkbanner.warn{background:var(--red-bg);color:var(--red);border-bottom:1px solid var(--red-bd)}
+nav.secnav{display:flex;gap:3px;flex-wrap:wrap;padding:8px 28px;background:rgba(255,255,255,.9);border-bottom:1px solid var(--border);position:sticky;top:55px;z-index:25}
+nav.secnav a{font-size:11px;font-weight:600;color:var(--muted);text-decoration:none;padding:4px 9px;border-radius:7px}
+nav.secnav a:hover{background:var(--accent-soft);color:var(--accent)}
+.container{padding:18px 28px 60px;max-width:1820px;margin:0 auto}
+section{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px;padding:18px 20px;box-shadow:var(--shadow-md);scroll-margin-top:112px}
+section h2{margin:0 0 3px;font-size:15.5px;font-weight:700;color:var(--ink);letter-spacing:-.01em;padding-left:10px;border-left:3px solid var(--accent)}
+section .sub{margin:6px 0 14px;font-size:11.5px;color:var(--muted);line-height:1.5}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.kpi{border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:linear-gradient(180deg,#ffffff,#f6faf8);transition:transform .14s,box-shadow .14s,border-color .14s}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--green-bd)}
+.kpi .lbl{font-size:9.5px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em;font-weight:650}
+.kpi .val{font-size:21px;font-weight:700;margin-top:3px;letter-spacing:-.02em;color:var(--ink)}
+.kpi .sub2{font-size:10.5px;color:var(--muted);margin-top:3px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.delta{font-weight:700;font-size:11px;padding:1px 6px;border-radius:5px;white-space:nowrap}
+.delta.up{color:var(--green);background:var(--green-bg)}
+.delta.down{color:var(--red);background:var(--red-bg)}
+.delta.flat{color:var(--muted);background:var(--gray-bg)}
+.arrow{font-size:9px}
+.tbl-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px;background:#fff;max-height:660px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border-light);text-align:left;white-space:nowrap}
+th{background:#f8fafc;font-weight:600;position:sticky;top:0;z-index:5;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.03em;cursor:pointer;user-select:none}
+th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover td{background:#fafbfc}
+td.city{font-weight:650;position:sticky;left:0;background:#fff;z-index:2}
+tbody tr:hover td.city{background:#fafbfc}
+tr.ff-row td{background:#fbf6ff}
+tr.ff-row:hover td{background:#f5edff}
+.stage-chip{display:inline-block;padding:2px 7px;border-radius:6px;font-size:9.5px;font-weight:600;border:1px solid var(--border);background:#f8fafc;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.dot.g{background:var(--green)}.dot.y{background:#d97706}.dot.r{background:var(--red)}.dot.x{background:#94a3b8}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:650;border:1px solid}
+.b-green{background:var(--green-bg);color:var(--green);border-color:var(--green-bd)}
+.b-yellow{background:var(--yellow-bg);color:var(--yellow);border-color:var(--yellow-bd)}
+.b-red{background:var(--red-bg);color:var(--red);border-color:var(--red-bd)}
+.b-gray{background:var(--gray-bg);color:var(--gray);border-color:var(--gray-bd)}
+.b-ff{background:#f5edff;color:#6d28d9;border-color:#ddd6fe}
+.b-cs{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+.b-pf{background:#ecfdf5;color:#047857;border-color:#a7f3d0}
+.cell-delta{font-size:10px;font-weight:600;margin-left:5px}
+.up-t{color:var(--green)}.down-t{color:var(--red)}.flat-t{color:var(--muted-2)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:1100px){.grid2,.grid3{grid-template-columns:1fr}}
+.note{border-radius:9px;padding:11px 14px;margin:12px 0 0;font-size:11.5px;border:1px solid var(--border);background:#f8fafc}
+.note.warn{background:var(--red-bg);border-color:var(--red-bd)}
+.note.amber{background:var(--yellow-bg);border-color:var(--yellow-bd)}
+.note.info{background:var(--accent-soft);border-color:#bfdbfe}
+.note .nt{font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;display:block;color:var(--muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);margin-top:8px;align-items:center}
+.bar{height:7px;border-radius:999px;background:#e2e8f0;display:inline-flex;overflow:hidden;min-width:70px;vertical-align:middle}
+.bar span{height:100%}.bar .b-bolt{background:var(--bolt)}.bar .b-prov{background:var(--prov)}
+.spark{display:block}
+.foot{color:var(--muted);font-size:11px;text-align:center;padding-top:6px}
+h3{font-size:13px;font-weight:650;margin:4px 0 8px}
+.mini{font-size:10.5px;color:var(--muted)}
+.defs dt{font-weight:650;margin-top:8px}
+.defs dd{margin:2px 0 0;color:var(--muted);font-size:11.5px}
+.tag-src{font-family:ui-monospace,Menlo,monospace;font-size:10px;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;border-radius:4px;padding:0 5px}
+.cohort-pill{display:inline-block;background:var(--accent-2);color:#fff;border-radius:6px;padding:2px 9px;font-size:11px;font-weight:650}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="eyebrow">Bolt Food · Growth Analytics · Live · Weekly</div>
+  <h1>CZ City V2 Discount Setup — Impact Monitor</h1>
+  <p>Refreshes every week on Monday at 12pm (Europe/Prague).</p>
+  <div class="meta" id="meta-chips"></div>
+</header>
+
+<div class="toolbar">
+  <label>Week<select id="f-week"></select></label>
+  <label>Lifecycle stage<select id="f-stage"></select></label>
+  <label>City<select id="f-city"></select></label>
+  <label>Exclude closed<select id="f-closed"><option value="1">Yes</option><option value="0">No</option></select></label>
+  <div class="spacer"></div>
+  <div class="btn" id="btn-reset">Reset filters</div>
+</div>
+<div class="wkbanner" id="wkbanner"></div>
+<nav class="secnav">
+  <a href="#exec">Summary</a>
+  <a href="#cities">City scorecard</a>
+  <a href="#stages">Lifecycle stages</a>
+  <a href="#trends">Weekly trends</a>
+  <a href="#activation">Activation</a>
+  <a href="#retention">Retention &amp; frequency</a>
+  <a href="#boltplus">Bolt+</a>
+  <a href="#providers">Providers (co-funding)</a>
+  <a href="#dimix">DI type mix</a>
+  <a href="#defs" id="nav-defs">Definitions &amp; open items</a>
+</nav>
+
+<div class="container">
+  <section id="exec"><h2>Summary</h2><div class="sub" id="exec-sub"></div><div class="kpis" id="exec-kpis"></div>
+    <div class="legend" id="ryg-legend"></div>
+  </section>
+
+  <section id="cities"><h2>City scorecard &amp; recommended action</h2>
+    <div class="tbl-wrap"><table id="city-table"></table></div>
+    <div class="legend">
+      <span><span class="dot g"></span> Green = keep</span>
+      <span><span class="dot y"></span> Yellow = monitor / optimize</span>
+      <span><span class="dot r"></span> Red = investigate / revert</span>
+      <span><span class="dot x"></span> Low-signal / Closed</span>
+    </div>
+  </section>
+
+  <section id="stages"><h2>Lifecycle stage performance</h2>
+    <div class="tbl-wrap"><table id="stage-table"></table></div>
+  </section>
+
+  <section id="trends"><h2>Weekly trends</h2>
+    <div class="grid3">
+      <div><h3>Orders</h3><div id="chart-orders"></div></div>
+      <div><h3>GMV (€)</h3><div id="chart-gmv"></div></div>
+      <div><h3>DI % of GMV</h3><div id="chart-disc"></div></div>
+    </div>
+    <div class="grid3" style="margin-top:14px">
+      <div><h3>DI spend / order (€)</h3><div id="chart-dipo"></div></div>
+      <div><h3>Same-day activation rate</h3><div id="chart-act"></div></div>
+      <div><h3>New Bolt+ subscribers</h3><div id="chart-subs"></div></div>
+    </div>
+  </section>
+
+  <section id="activation"><h2>Activation funnel (new signups)</h2>
+    <div class="sub">Signup cohort for the selected week vs prior week. The latest 1 cohort may not be fully D7-mature.</div>
+    <div class="tbl-wrap"><table id="act-table"></table></div>
+  </section>
+
+  <section id="retention"><h2>Retention &amp; frequency — are users building order frequency?</h2>
+    <div class="note info"><span class="nt">How this is measured</span>
+      Order-depth &amp; repeat are measured on <b>fixed windows from signup</b> (D7 / D14 / D28), so every cohort is compared over the same elapsed time — not "as of today". A cohort is shown only once it is <b>mature</b> for the window (e.g. D28 needs the whole cohort to be ≥28 days old). That's why we anchor on the latest fully-matured cohort, <span id="ret-cohort-pill" class="cohort-pill"></span>, rather than last week's signups (whose 8th order simply can't exist yet). WoW here compares this cohort to the one before it.
+      <br><b>Repeat is cumulative within the window</b> — D7 ⊆ D14 ⊆ D28. A user whose 2nd order lands on day 10 counts in D14 &amp; D28 but not D7, so the rate rises with the window.
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      <div><h3>Order-depth curve — % of signup cohort reaching their Nth order within 28 days</h3><div id="chart-depth"></div>
+        <div class="legend"><span style="color:#12b76a">■ <span id="depth-cur-lbl"></span></span><span style="color:#94a59c">■ <span id="depth-prev-lbl"></span> (prior cohort)</span></div>
+      </div>
+      <div><h3>Per-city repeat rate &amp; D28 frequency</h3>
+        <div class="tbl-wrap" style="max-height:360px"><table id="ret-table"></table></div>
+      </div>
+    </div>
+    <h3 style="margin-top:18px">Order frequency by V2 lifecycle cohort (all users, not just new signups)</h3>
+    <div class="tbl-wrap" style="max-height:380px"><table id="cohfreq-table"></table></div>
+  </section>
+
+  <section id="boltplus"><h2>Bolt+ adoption</h2>
+    <div class="tbl-wrap"><table id="bp-table"></table></div>
+  </section>
+
+  <section id="providers"><h2>Top providers — co-funding targets</h2>
+    <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap">
+      <label style="font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);display:flex;flex-direction:column;gap:3px">Segment<select id="prov-seg" style="padding:6px 9px;border:1px solid var(--border);border-radius:8px;font-size:12px;min-width:170px;background:#fff"></select></label>
+      <label style="font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);display:flex;flex-direction:column;gap:3px">Funding<select id="prov-ft" style="padding:6px 9px;border:1px solid var(--border);border-radius:8px;font-size:12px;min-width:150px;background:#fff">
+        <option value="All">All</option><option value="FF">FF — Bolt only</option><option value="CS">CS — cost-shared</option><option value="PF">PF — provider</option></select></label>
+    </div>
+    <div class="tbl-wrap"><table id="prov-table"></table></div>
+    <div class="legend"><span><span class="badge b-ff">FF</span> Bolt-funded only (no provider €)</span><span><span class="badge b-cs">CS</span> cost-shared</span><span><span class="badge b-pf">PF</span> provider-funded</span></div>
+  </section>
+
+  <section id="dimix"><h2>DI spend by objective (type mix)</h2>
+    <div class="tbl-wrap"><table id="obj-table"></table></div>
+  </section>
+
+  <section id="defs"><h2>Definitions, decision logic &amp; open items</h2>
+    <div class="grid2">
+      <div>
+        <h3>Metric definitions (as computed)</h3>
+        <dl class="defs" id="defs-list"></dl>
+      </div>
+      <div>
+        <h3>Red / Yellow / Green logic <span class="mini">(WoW; thresholds = assumptions)</span></h3>
+        <dl class="defs">
+          <dt>Green — Keep</dt><dd>Orders &amp; GMV ≥ −2% WoW AND DI/order not rising (≤ 0%) AND same-day activation Δ ≥ −1pp.</dd>
+          <dt>Red — Investigate / Revert</dt><dd>Orders or GMV ≤ −8% WoW; OR DI/order up &gt; +5% while orders flat-to-down; OR same-day activation Δ ≤ −3pp <i>and</i> orders also down ≥2%. (Volume-aware — won't flag a city red while orders &amp; GMV clearly grow.)</dd>
+          <dt>Yellow — Monitor / Optimize</dt><dd>Everything in between.</dd>
+          <dt>Low-signal</dt><dd>&lt; 40 orders in the week — % swings unreliable, judged manually.</dd>
+        </dl>
+        <h3 style="margin-top:14px">Open items (need stakeholder/data input)</h3>
+        <dl class="defs" id="open-list"></dl>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const CONFIG = __CONFIG__;
+const DATA = __DATA__;
+const fmt=(n,d=0)=>n==null||isNaN(n)?'–':Number(n).toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
+const kfmt=(n)=>{if(n==null||isNaN(n))return '–';const a=Math.abs(n);if(a>=1e6)return (n/1e6).toFixed(1)+'M';if(a>=1e3)return (n/1e3).toFixed(1)+'k';return fmt(n,0);};
+const eur=(n,d=0)=>n==null||isNaN(n)?'–':'€'+fmt(n,d);
+const keur=(n)=>n==null||isNaN(n)?'–':'€'+kfmt(n);
+const pct=(n,d=1)=>n==null||isNaN(n)?'–':fmt(n,d)+'%';
+const sum=(a)=>a.reduce((s,x)=>s+(x||0),0);
+const uniq=(a)=>[...new Set(a)];
+
+const STAGE_ORDER=["Launch","Re-launch","Good CVP & Good Pen","Good CVP Low Pen","Poor CVP - Selection","Poor CVP - Selection + Service","Poor CVP - Service","Ready to BAU","Closed"];
+const ROSTER=DATA.meta.roster;
+const WMETA=DATA.meta.weeks_meta;
+const WEEKS=WMETA.map(w=>w.start);
+const COMPLETE=WMETA.filter(w=>w.complete).map(w=>w.start);
+const LABEL={};WMETA.forEach(w=>LABEL[w.start]=w.label);
+const LATEST_COMPLETE=DATA.meta.latest_complete_week;
+const TODAY=new Date();
+function addDays(ds,n){const d=new Date(ds+'T00:00:00');d.setDate(d.getDate()+n);return d;}
+function daysSince(ds){return Math.floor((TODAY-new Date(ds+'T00:00:00'))/86400000);}
+function prevWeek(w){const i=WEEKS.indexOf(w);return i>0?WEEKS[i-1]:null;}
+
+function byCity(rows){const m={};rows.forEach(r=>{(m[r.city_name]=m[r.city_name]||[]).push(r);});return m;}
+const CW=byCity(DATA.city_weekly), AW=byCity(DATA.activation_weekly), SW=byCity(DATA.subs_weekly), CD=byCity(DATA.cohort_depth), CF=byCity(DATA.cohort_freq);
+const COHORT_ORDER=["Signup","Recently Activated","Occasional","Reactivated","Plus Ready","Subscribed","Disengaged"];
+
+// cohort maturity: window X days observed for all signups in the week (last signup = weekStart+6)
+function isMature(weekStart,X){return daysSince(weekStart)>= (6+X);}
+function latestMatureCohort(X){const cw=COMPLETE.filter(w=>(CD[Object.keys(CD)[0]]||[]).some(r=>r.signup_week===w)||true);
+  for(let i=WEEKS.length-1;i>=0;i--){if(isMature(WEEKS[i],X))return WEEKS[i];}return null;}
+
+function rowFor(map,city,wk,key){return (map[city]||[]).find(r=>r[key]===wk);}
+
+// ---- per-city weekly metric object ----
+function cityWeek(city,wk){
+  const r=rowFor(CW,city,wk,'week_start');
+  if(!r)return null;
+  const di=r.di_bolt_eur+r.di_provider_eur, g=r.gmv_eur;
+  return {orders:r.orders,gmv:g,active_users:r.active_users,disc:r.di_discount_eur,di:di,
+    bolt:r.di_bolt_eur,prov:r.di_provider_eur,bp_orders:r.bolt_plus_orders,bp_users:r.bolt_plus_users,bp_gmv:r.bolt_plus_gmv_eur||0,
+    aov:r.orders?g/r.orders:null, di_po:r.orders?di/r.orders:null,
+    di_pct:g?100*di/g:null, di_pct_ff:g?100*r.di_bolt_eur/g:null,
+    bp_share:r.orders?100*r.bolt_plus_orders/r.orders:null, bp_gmv_share:g?100*(r.bolt_plus_gmv_eur||0)/g:null,
+    freq:r.active_users?r.orders/r.active_users:null};
+}
+function actWeek(city,wk){const r=rowFor(AW,city,wk,'signup_week');if(!r)return null;const su=r.signup_users;
+  return {signups:su,activated:r.activated_users,d0:r.activated_d0,d7:r.activated_d7,d14:r.activated_d14,
+    sd_rate:su?100*r.activated_d0/su:null,d7_rate:su?100*r.activated_d7/su:null,act_rate:su?100*r.activated_users/su:null};}
+function subsWeek(city,wk){const r=rowFor(SW,city,wk,'sub_week');return r?r.new_subscribers:0;}
+
+// ---- filters ----
+let FILTER={week:LATEST_COMPLETE,stage:'All',city:'All',closed:1};
+function filteredCities(){let cs=Object.keys(ROSTER);
+  if(FILTER.closed==1)cs=cs.filter(c=>ROSTER[c]!=='Closed');
+  if(FILTER.stage!=='All')cs=cs.filter(c=>ROSTER[c]===FILTER.stage);
+  if(FILTER.city!=='All')cs=cs.filter(c=>c===FILTER.city);
+  return cs.sort((a,b)=>(STAGE_ORDER.indexOf(ROSTER[a])-STAGE_ORDER.indexOf(ROSTER[b]))||a.localeCompare(b));}
+
+function initFilters(){
+  const fw=document.getElementById('f-week');
+  fw.innerHTML=WMETA.slice().reverse().map(w=>`<option value="${w.start}">${w.label}${w.complete?'':' (partial — incomplete)'}</option>`).join('');
+  fw.value=FILTER.week;
+  const stages=['All',...STAGE_ORDER.filter(s=>Object.values(ROSTER).includes(s))];
+  document.getElementById('f-stage').innerHTML=stages.map(s=>`<option>${s}</option>`).join('');
+  document.getElementById('f-city').innerHTML=['All',...Object.keys(ROSTER).sort()].map(c=>`<option>${c}</option>`).join('');
+  fw.onchange=e=>{FILTER.week=e.target.value;render();};
+  document.getElementById('f-stage').onchange=e=>{FILTER.stage=e.target.value;render();};
+  document.getElementById('f-city').onchange=e=>{FILTER.city=e.target.value;render();};
+  document.getElementById('f-closed').onchange=e=>{FILTER.closed=+e.target.value;render();};
+  const segs=['All',...uniq(DATA.provider_top.map(p=>p.segment)).sort()];
+  document.getElementById('prov-seg').innerHTML=segs.map(s=>`<option>${s}</option>`).join('');
+  document.getElementById('prov-seg').onchange=()=>renderProviders();
+  document.getElementById('prov-ft').onchange=()=>renderProviders();
+  document.getElementById('btn-reset').onclick=()=>{FILTER={week:LATEST_COMPLETE,stage:'All',city:'All',closed:1};fw.value=LATEST_COMPLETE;document.getElementById('f-stage').value='All';document.getElementById('f-city').value='All';document.getElementById('f-closed').value='1';render();};
+}
+
+// delta helpers
+function pctChg(cur,prev){if(prev==null||prev===0||cur==null)return null;return 100*(cur-prev)/prev;}
+function deltaBadge(v,goodUp=true,unit='%',dp=1){
+  if(v==null)return '<span class="delta flat">–</span>';
+  const good=goodUp?v>0:v<0;const cls=Math.abs(v)<(unit==='pp'?0.3:0.5)?'flat':(good?'up':'down');
+  const ar=cls==='flat'?'→':(v>0?'↑':'↓');
+  return `<span class="delta ${cls}"><span class="arrow">${ar}</span> ${(v>0?'+':'')+fmt(v,dp)+unit}</span>`;
+}
+function deltaInline(v,goodUp=true,unit='%',dp=1){
+  if(v==null)return '';
+  const good=goodUp?v>0:v<0;const cls=Math.abs(v)<(unit==='pp'?0.3:0.5)?'flat-t':(good?'up-t':'down-t');
+  const ar=Math.abs(v)<(unit==='pp'?0.3:0.5)?'→':(v>0?'↑':'↓');
+  return `<span class="cell-delta ${cls}">${ar}${(v>0?'+':'')+fmt(v,dp)+unit}</span>`;
+}
+
+// ---- RYG (WoW) ----
+function rygFor(c){
+  const wk=FILTER.week, pw=prevWeek(wk);
+  const cur=cityWeek(c,wk), prev=pw?cityWeek(c,pw):null;
+  const acur=actWeek(c,wk), aprev=pw?actWeek(c,pw):null;
+  const ordChg=cur&&prev?pctChg(cur.orders,prev.orders):null;
+  const gmvChg=cur&&prev?pctChg(cur.gmv,prev.gmv):null;
+  const dipoChg=cur&&prev?pctChg(cur.di_po,prev.di_po):null;
+  const sdDelta=(acur&&aprev&&acur.sd_rate!=null&&aprev.sd_rate!=null)?(acur.sd_rate-aprev.sd_rate):null;
+  let status,action;
+  if(ROSTER[c]==='Closed'){status='gray';action='—';}
+  else if(!cur||cur.orders<40){status='gray';action='Low-signal';}
+  else{
+    const volDrop=(ordChg!=null&&ordChg<=-8)||(gmvChg!=null&&gmvChg<=-8);
+    const effBad=(dipoChg!=null&&dipoChg>5&&(ordChg==null||ordChg<=0));
+    const acqBad=(sdDelta!=null&&sdDelta<=-3)&&(ordChg!=null&&ordChg<=-2);
+    const red=volDrop||effBad||acqBad;
+    const green=(ordChg!=null&&ordChg>=-2)&&(gmvChg!=null&&gmvChg>=-2)&&(dipoChg==null||dipoChg<=0)&&(sdDelta==null||sdDelta>=-1);
+    if(red){status='red';action='Investigate / Revert';}
+    else if(green){status='green';action='Keep';}
+    else{status='yellow';action='Monitor / Optimize';}
+  }
+  return {cur,prev,acur,ordChg,gmvChg,dipoChg,sdDelta,status,action};
+}
+
+// ---- EXEC ----
+function aggWeek(cities,wk){let o={orders:0,gmv:0,di:0,bolt:0,disc:0,bp_orders:0,bp_gmv:0,active_users:0};
+  cities.forEach(c=>{const x=cityWeek(c,wk);if(x){o.orders+=x.orders;o.gmv+=x.gmv;o.di+=x.di;o.bolt+=x.bolt;o.disc+=x.disc;o.bp_orders+=x.bp_orders;o.bp_gmv+=x.bp_gmv;o.active_users+=x.active_users;}});return o;}
+function aggAct(cities,wk){let a={signups:0,d0:0,d7:0,activated:0};cities.forEach(c=>{const x=actWeek(c,wk);if(x){a.signups+=x.signups;a.d0+=x.d0;a.d7+=x.d7;a.activated+=x.activated;}});return a;}
+function aggSubs(cities,wk){return sum(cities.map(c=>subsWeek(c,wk)));}
+
+function renderExec(){
+  const cities=filteredCities(), wk=FILTER.week, pw=prevWeek(wk);
+  const cur=aggWeek(cities,wk), prev=pw?aggWeek(cities,pw):null;
+  const acur=aggAct(cities,wk), aprev=pw?aggAct(cities,pw):null;
+  const subsCur=aggSubs(cities,wk), subsPrev=pw?aggSubs(cities,pw):0;
+  const active=cities.filter(c=>ROSTER[c]!=='Closed').length;
+  const sd=acur.signups?100*acur.d0/acur.signups:null, sdp=aprev&&aprev.signups?100*aprev.d0/aprev.signups:null;
+  const dipo=cur.orders?cur.di/cur.orders:null, dipop=prev&&prev.orders?prev.di/prev.orders:null;
+  const dipct=cur.gmv?100*cur.di/cur.gmv:null, dipctp=prev&&prev.gmv?100*prev.di/prev.gmv:null;
+  const diff=cur.gmv?100*cur.bolt/cur.gmv:null, diffp=prev&&prev.gmv?100*prev.bolt/prev.gmv:null;
+  const bpgmv=cur.gmv?100*cur.bp_gmv/cur.gmv:null, bpgmvp=prev&&prev.gmv?100*prev.bp_gmv/prev.gmv:null;
+  let g=0,y=0,r=0,x=0;cities.forEach(c=>{const s=rygFor(c).status;if(s==='green')g++;else if(s==='yellow')y++;else if(s==='red')r++;else x++;});
+  document.getElementById('exec-sub').innerHTML=`Week <b>${LABEL[wk]}</b> vs <b>${pw?LABEL[pw]:'–'}</b> (WoW) · ${cities.length} cities in view (${active} active under V2)`;
+  const cards=[
+    ['Active cities (V2)',fmt(active),`${cities.length} in view`],
+    ['Orders',fmt(cur.orders),deltaBadge(prev?pctChg(cur.orders,prev.orders):null)],
+    ['GMV',keur(cur.gmv),deltaBadge(prev?pctChg(cur.gmv,prev.gmv):null)],
+    ['DI spend',keur(cur.di),deltaBadge(prev?pctChg(cur.di,prev.di):null,false)],
+    ['DI % (total)',pct(dipct),deltaBadge(dipct!=null&&dipctp!=null?dipct-dipctp:null,false,'pp')],
+    ['DI % FF (Bolt)',pct(diff),deltaBadge(diff!=null&&diffp!=null?diff-diffp:null,false,'pp')],
+    ['Same-day activation',pct(sd),deltaBadge(sd!=null&&sdp!=null?sd-sdp:null,true,'pp')],
+    ['New signups',fmt(acur.signups),deltaBadge(aprev?pctChg(acur.signups,aprev.signups):null)],
+    ['New users (activated)',fmt(acur.activated),deltaBadge(aprev?pctChg(acur.activated,aprev.activated):null)],
+    ['New Bolt+ subs',fmt(subsCur),deltaBadge(pctChg(subsCur,subsPrev))],
+    ['Bolt+ GMV adoption',pct(bpgmv),deltaBadge(bpgmv!=null&&bpgmvp!=null?bpgmv-bpgmvp:null,true,'pp')],
+  ];
+  document.getElementById('exec-kpis').innerHTML=cards.map(c=>`<div class="kpi"><div class="lbl">${c[0]}</div><div class="val">${c[1]}</div><div class="sub2">${c[2]||''}</div></div>`).join('');
+  document.getElementById('ryg-legend').innerHTML=`<b>City status (WoW):</b> <span class="badge b-green">${g} Green</span> <span class="badge b-yellow">${y} Yellow</span> <span class="badge b-red">${r} Red</span> <span class="badge b-gray">${x} Low-signal/Closed</span>`;
+}
+
+// ---- CITY TABLE ----
+let SORT={key:'orders',dir:-1};
+function renderCities(){
+  const cities=filteredCities(), pw=prevWeek(FILTER.week);
+  const rows=cities.map(c=>{const R=rygFor(c);const cur=R.cur||{};const prev=R.prev||null;
+    const subs=subsWeek(c,FILTER.week), subsp=pw?subsWeek(c,pw):null;
+    return {city:c,stage:ROSTER[c],...R,
+    orders:cur.orders??null,gmv:cur.gmv??null,aov:cur.aov??null,di_po:cur.di_po??null,
+    di_pct:cur.di_pct??null,di_pct_ff:cur.di_pct_ff??null,
+    bp_share:cur.bp_share??null,freq:cur.freq??null,sd:R.acur?R.acur.sd_rate:null,subs:subs,
+    diPctChg:(prev&&cur.di_pct!=null&&prev.di_pct!=null)?cur.di_pct-prev.di_pct:null,
+    diFfChg:(prev&&cur.di_pct_ff!=null&&prev.di_pct_ff!=null)?cur.di_pct_ff-prev.di_pct_ff:null,
+    bpShareChg:(prev&&cur.bp_share!=null&&prev.bp_share!=null)?cur.bp_share-prev.bp_share:null,
+    subsChg:(subsp!=null)?pctChg(subs,subsp):null};});
+  const sk=SORT.key;
+  rows.sort((a,b)=>{let va=a[sk],vb=b[sk];if(typeof va==='string')return SORT.dir*va.localeCompare(vb);return SORT.dir*(((va==null)?-1e15:va)-((vb==null)?-1e15:vb));});
+  const cols=[['city','City',0],['stage','Stage',0],['orders','Orders',1],['gmv','GMV €',1],['aov','AOV €',1],
+    ['sd','Same-day act',1],['freq','Orders/user',1],['di_po','DI/order €',1],['di_pct','DI % (total)',1],['di_pct_ff','DI % FF (Bolt)',1],['bp_share','Bolt+ share',1],['subs','New subs',1],['status','Status',0],['action','Action',0]];
+  let h='<thead><tr>'+cols.map(c=>`<th class="${c[2]?'num':''}" data-k="${c[0]}">${c[1]}</th>`).join('')+'</tr></thead><tbody>';
+  rows.forEach(r=>{
+    const stx=r.status==='green'?'g':r.status==='yellow'?'y':r.status==='red'?'r':'x';
+    const bclass=r.status==='green'?'b-green':r.status==='yellow'?'b-yellow':r.status==='red'?'b-red':'b-gray';
+    h+=`<tr>
+      <td class="city">${r.city}</td><td><span class="stage-chip">${r.stage}</span></td>
+      <td class="num">${fmt(r.orders)}${deltaInline(r.ordChg)}</td>
+      <td class="num">${kfmt(r.gmv)}${deltaInline(r.gmvChg)}</td>
+      <td class="num">${fmt(r.aov,1)}</td>
+      <td class="num">${pct(r.sd)}</td>
+      <td class="num">${fmt(r.freq,2)}</td>
+      <td class="num">${eur(r.di_po,2)}${deltaInline(r.dipoChg,false)}</td>
+      <td class="num">${pct(r.di_pct)}${deltaInline(r.diPctChg,false,'pp')}</td>
+      <td class="num">${pct(r.di_pct_ff)}${deltaInline(r.diFfChg,false,'pp')}</td>
+      <td class="num">${pct(r.bp_share)}${deltaInline(r.bpShareChg,true,'pp')}</td>
+      <td class="num">${fmt(r.subs)}${deltaInline(r.subsChg)}</td>
+      <td><span class="dot ${stx}"></span></td>
+      <td><span class="badge ${bclass}">${r.action}</span></td>
+    </tr>`;});
+  h+='</tbody>';const t=document.getElementById('city-table');t.innerHTML=h;
+  t.querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;SORT.dir=(SORT.key===k)?-SORT.dir:-1;SORT.key=k;renderCities();});
+}
+
+// ---- STAGE TABLE ----
+function renderStages(){
+  const wk=FILTER.week,pw=prevWeek(wk);
+  let cs=Object.keys(ROSTER);if(FILTER.closed==1)cs=cs.filter(c=>ROSTER[c]!=='Closed');
+  if(FILTER.city!=='All')cs=cs.filter(c=>c===FILTER.city);
+  const stages=uniq(cs.map(c=>ROSTER[c])).sort((a,b)=>STAGE_ORDER.indexOf(a)-STAGE_ORDER.indexOf(b));
+  let h='<thead><tr><th>Stage</th><th class="num"># Cities</th><th class="num">Orders</th><th class="num">GMV €</th><th class="num">DI/order €</th><th class="num">DI %</th><th class="num">Same-day act</th><th class="num">New subs</th></tr></thead><tbody>';
+  stages.forEach(s=>{const list=cs.filter(c=>ROSTER[c]===s);
+    const cur=aggWeek(list,wk),prev=pw?aggWeek(list,pw):null,a=aggAct(list,wk),subs=aggSubs(list,wk);
+    const dipo=cur.orders?cur.di/cur.orders:null,dipop=prev&&prev.orders?prev.di/prev.orders:null;
+    h+=`<tr><td><span class="stage-chip">${s}</span></td><td class="num">${list.length}</td>
+      <td class="num">${fmt(cur.orders)}${deltaInline(prev?pctChg(cur.orders,prev.orders):null)}</td>
+      <td class="num">${kfmt(cur.gmv)}${deltaInline(prev?pctChg(cur.gmv,prev.gmv):null)}</td>
+      <td class="num">${eur(dipo,2)}${deltaInline(prev?pctChg(dipo,dipop):null,false)}</td>
+      <td class="num">${pct(cur.gmv?100*cur.disc/cur.gmv:null)}</td>
+      <td class="num">${pct(a.signups?100*a.d0/a.signups:null)}</td>
+      <td class="num">${fmt(subs)}</td></tr>`;});
+  h+='</tbody>';document.getElementById('stage-table').innerHTML=h;
+}
+
+// ---- SVG line chart with data labels ----
+function lineChart(elId,series,opts={}){
+  const el=document.getElementById(elId);const W=opts.w||380,H=opts.h||170,P=30,PT=22;
+  const xs=opts.weeks||COMPLETE;const n=xs.length;
+  let max=-Infinity,min=Infinity;series.forEach(s=>s.data.forEach(v=>{if(v!=null){max=Math.max(max,v);min=Math.min(min,v);}}));
+  if(opts.zero)min=0;if(min===Infinity){min=0;max=1;}if(max===min)max=min+1;
+  const pad=(max-min)*0.18;max+=pad; if(!opts.zero) min-=pad*0.5;
+  const x=i=>P+(W-2*P)*(n<=1?0:i/(n-1));
+  const y=v=>H-PT-(H-PT-14)*((v-min)/(max-min));
+  const colors=['#2563eb','#7c3aed','#059669','#d97706'];
+  const lf=opts.lf||(v=>fmt(v,0));
+  let svg=`<svg class="spark" viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet">`;
+  svg+=`<line x1="${P}" y1="${H-PT}" x2="${W-P}" y2="${H-PT}" stroke="#e2e8f0"/>`;
+  series.forEach((s,si)=>{const c=s.color||colors[si%colors.length];let d='',st=false;
+    s.data.forEach((v,i)=>{if(v==null)return;d+=(st?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)+' ';st=true;});
+    svg+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round"/>`;
+    s.data.forEach((v,i)=>{if(v==null)return;svg+=`<circle cx="${x(i)}" cy="${y(v)}" r="2.3" fill="${c}"/>`;
+      if(si===series.length-1||series.length===1){svg+=`<text x="${x(i)}" y="${y(v)-5}" font-size="8" fill="#475569" text-anchor="middle">${lf(v)}</text>`;}});
+  });
+  xs.forEach((w,i)=>{if(i%2===0||i===n-1)svg+=`<text x="${x(i)}" y="${H-7}" font-size="7.5" fill="#94a3b8" text-anchor="middle">${(LABEL[w]||w).replace('2026','')}</text>`;});
+  svg+='</svg>';el.innerHTML=svg;
+}
+function barChart(elId,data,opts={}){
+  const el=document.getElementById(elId);const W=opts.w||380,H=opts.h||170,P=30,PT=22;
+  const xs=opts.weeks||COMPLETE;const n=xs.length;
+  let max=-Infinity,min=Infinity;data.forEach(v=>{if(v!=null){max=Math.max(max,v);min=Math.min(min,v);}});
+  if(min===Infinity){min=0;max=1;}min=Math.min(0,min);if(max===min)max=min+1;max+=(max-min)*0.16;
+  const bw=(W-2*P)/n*0.66, gap=(W-2*P)/n;
+  const x=i=>P+gap*i+(gap-bw)/2;
+  const y=v=>H-PT-(H-PT-16)*((v-min)/(max-min));
+  const col=opts.color||'#12b76a';const lf=opts.lf||(v=>fmt(v,0));
+  let svg=`<svg class="spark" viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet">`;
+  svg+=`<line x1="${P}" y1="${y(0)}" x2="${W-P}" y2="${y(0)}" stroke="#e2e8f0"/>`;
+  data.forEach((v,i)=>{if(v==null)return;const yy=y(v),y0=y(0);const top=Math.min(yy,y0),hh=Math.abs(y0-yy);
+    svg+=`<rect x="${x(i).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(hh,0.5).toFixed(1)}" rx="2" fill="${col}" opacity="${i===n-1?1:0.82}"/>`;
+    svg+=`<text x="${(x(i)+bw/2).toFixed(1)}" y="${(top-3).toFixed(1)}" font-size="7.5" fill="#475569" text-anchor="middle">${lf(v)}</text>`;});
+  xs.forEach((w,i)=>{if(i%2===0||i===n-1)svg+=`<text x="${(x(i)+bw/2).toFixed(1)}" y="${H-7}" font-size="7.5" fill="#94a3b8" text-anchor="middle">${(LABEL[w]||w).replace('2026','')}</text>`;});
+  svg+='</svg>';el.innerHTML=svg;
+}
+function weeklyAgg(cities,metric){return COMPLETE.map(w=>{let num=0,den=0,ok=false;
+  cities.forEach(c=>{const r=rowFor(CW,c,w,'week_start'),ar=rowFor(AW,c,w,'signup_week'),sr=rowFor(SW,c,w,'sub_week');
+    if(metric==='orders'&&r){num+=r.orders;ok=true;}
+    else if(metric==='gmv'&&r){num+=r.gmv_eur;ok=true;}
+    else if(metric==='disc'&&r){num+=r.di_discount_eur;den+=r.gmv_eur;ok=true;}
+    else if(metric==='dipo'&&r){num+=r.di_bolt_eur+r.di_provider_eur;den+=r.orders;ok=true;}
+    else if(metric==='act'&&ar){num+=ar.activated_d0;den+=ar.signup_users;ok=true;}
+    else if(metric==='subs'&&sr){num+=sr.new_subscribers;ok=true;}});
+  if(!ok)return null;if(metric==='disc'||metric==='act')return den?100*num/den:null;if(metric==='dipo')return den?num/den:null;return num;});}
+function renderTrends(){
+  const cities=filteredCities();
+  barChart('chart-orders',weeklyAgg(cities,'orders'),{lf:kfmt,color:'#12b76a'});
+  barChart('chart-gmv',weeklyAgg(cities,'gmv'),{lf:keur,color:'#0e9384'});
+  barChart('chart-disc',weeklyAgg(cities,'disc'),{lf:v=>fmt(v,1)+'%',color:'#f79009'});
+  barChart('chart-dipo',weeklyAgg(cities,'dipo'),{lf:v=>'€'+fmt(v,2),color:'#f79009'});
+  barChart('chart-act',weeklyAgg(cities,'act'),{lf:v=>fmt(v,1)+'%',color:'#2e90fa'});
+  barChart('chart-subs',weeklyAgg(cities,'subs'),{lf:kfmt,color:'#9e77ed'});
+}
+
+// ---- ACTIVATION ----
+function renderActivation(){
+  const wk=FILTER.week,pw=prevWeek(wk),cities=filteredCities();
+  let h='<thead><tr><th>City</th><th>Stage</th><th class="num">Signups</th><th class="num">New users</th><th class="num">Same-day rate</th><th class="num">D7 rate</th></tr></thead><tbody>';
+  cities.forEach(c=>{const a=actWeek(c,wk),p=pw?actWeek(c,pw):null;if(!a)return;
+    h+=`<tr><td class="city">${c}</td><td><span class="stage-chip">${ROSTER[c]}</span></td>
+      <td class="num">${fmt(a.signups)}${deltaInline(p?pctChg(a.signups,p.signups):null)}</td>
+      <td class="num">${fmt(a.activated)}${deltaInline(p?pctChg(a.activated,p.activated):null)}</td>
+      <td class="num">${pct(a.sd_rate)}${deltaInline(p&&p.sd_rate!=null?a.sd_rate-p.sd_rate:null,true,'pp')}</td>
+      <td class="num">${pct(a.d7_rate)}${deltaInline(p&&p.d7_rate!=null?a.d7_rate-p.d7_rate:null,true,'pp')}</td></tr>`;});
+  h+='</tbody>';document.getElementById('act-table').innerHTML=h;
+}
+
+// ---- RETENTION & FREQUENCY (cohort-based, mature) ----
+function depthAgg(cities,wk){let o={signups:0};for(let k=1;k<=10;k++)o['ge'+k]=0;o.d7r=0;o.d14r=0;o.d28r=0;o.ord28=0;
+  cities.forEach(c=>{const r=rowFor(CD,c,wk,'signup_week');if(r){o.signups+=r.signups;for(let k=1;k<=10;k++)o['ge'+k]+=r['d28_ge'+k];o.d7r+=r.d7_repeat;o.d14r+=r.d14_repeat;o.d28r+=r.d28_repeat;o.ord28+=r.orders_d28;}});return o;}
+function renderRetention(){
+  const cities=filteredCities();
+  const ref=latestMatureCohort(28), prev=ref?prevWeek(ref):null;
+  document.getElementById('ret-cohort-pill').textContent=ref?LABEL[ref]:'n/a';
+  document.getElementById('depth-cur-lbl').textContent=ref?LABEL[ref]:'';
+  document.getElementById('depth-prev-lbl').textContent=prev?LABEL[prev]:'';
+  // order-depth curve
+  const cur=depthAgg(cities,ref), pr=prev?depthAgg(cities,prev):null;
+  const curve=k=>cur.signups?100*cur['ge'+k]/cur.signups:null;
+  const curveP=k=>pr&&pr.signups?100*pr['ge'+k]/pr.signups:null;
+  const sCur=[],sPrev=[];for(let k=1;k<=10;k++){sCur.push(curve(k));sPrev.push(curveP(k));}
+  depthChart('chart-depth',sCur,sPrev);
+  // per-city table
+  let h='<thead><tr><th>City</th><th class="num">Cohort signups</th><th class="num">Repeat ≤D7</th><th class="num">Repeat ≤D14</th><th class="num">Repeat ≤D28</th><th class="num">Orders/signup (D28)</th></tr></thead><tbody>';
+  cities.forEach(c=>{const r=rowFor(CD,c,ref,'signup_week'),p=prev?rowFor(CD,c,prev,'signup_week'):null;if(!r||!r.signups)return;
+    const d7=100*r.d7_repeat/r.signups,d14=100*r.d14_repeat/r.signups,d28=100*r.d28_repeat/r.signups,ops=r.orders_d28/r.signups;
+    const pd28=p&&p.signups?100*p.d28_repeat/p.signups:null, pops=p&&p.signups?p.orders_d28/p.signups:null;
+    h+=`<tr><td class="city">${c}</td><td class="num">${fmt(r.signups)}</td>
+      <td class="num">${pct(d7)}</td><td class="num">${pct(d14)}</td>
+      <td class="num">${pct(d28)}${deltaInline(pd28!=null?d28-pd28:null,true,'pp')}</td>
+      <td class="num">${fmt(ops,2)}${deltaInline(pops!=null?pctChg(ops,pops):null)}</td></tr>`;});
+  h+='</tbody>';document.getElementById('ret-table').innerHTML=h;
+}
+function depthChart(elId,cur,prev){
+  const el=document.getElementById(elId);const W=420,H=210,P=34,PT=24,n=10;
+  const max=100;const x=i=>P+(W-2*P)*(i/(n-1));const y=v=>H-PT-(H-PT-16)*(v/max);
+  let svg=`<svg class="spark" viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet">`;
+  [0,25,50,75,100].forEach(g=>{svg+=`<line x1="${P}" y1="${y(g)}" x2="${W-P}" y2="${y(g)}" stroke="#f1f5f9"/><text x="${P-4}" y="${y(g)+3}" font-size="8" fill="#94a3b8" text-anchor="end">${g}%</text>`;});
+  const draw=(arr,col,lab)=>{let d='',st=false;arr.forEach((v,i)=>{if(v==null)return;d+=(st?'L':'M')+x(i).toFixed(1)+' '+y(v).toFixed(1)+' ';st=true;});
+    svg+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="2"/>`;
+    arr.forEach((v,i)=>{if(v==null)return;svg+=`<circle cx="${x(i)}" cy="${y(v)}" r="2.3" fill="${col}"/>`;if(lab)svg+=`<text x="${x(i)}" y="${y(v)-5}" font-size="7.5" fill="#475569" text-anchor="middle">${fmt(v,0)}</text>`;});};
+  if(prev)draw(prev,'#cbd5e1',false);draw(cur,'#12b76a',true);
+  for(let i=0;i<n;i++)svg+=`<text x="${x(i)}" y="${H-7}" font-size="8" fill="#94a3b8" text-anchor="middle">≥${i+1}</text>`;
+  svg+='</svg>';el.innerHTML=svg;
+}
+
+// ---- COHORT FREQUENCY (all users) ----
+function cohFreqAgg(cities,wk){const m={};
+  cities.forEach(c=>{(CF[c]||[]).filter(r=>r.week_start===wk).forEach(r=>{const k=r.user_cohort;m[k]=m[k]||{users:0,active:0,orders:0,gmv:0};m[k].users+=r.users;m[k].active+=r.active_users;m[k].orders+=r.orders;m[k].gmv+=r.gmv;});});return m;}
+function renderCohortFreq(){
+  const wk=FILTER.week,pw=prevWeek(wk),cities=filteredCities();
+  const cur=cohFreqAgg(cities,wk),prev=pw?cohFreqAgg(cities,pw):{};
+  const cohorts=Object.keys(cur).sort((a,b)=>{const ia=COHORT_ORDER.indexOf(a),ib=COHORT_ORDER.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
+  let h='<thead><tr><th>V2 cohort</th><th class="num">Users</th><th class="num">Ordered %</th><th class="num">Orders</th><th class="num">Orders / user</th><th class="num">GMV / user €</th></tr></thead><tbody>';
+  cohorts.forEach(k=>{const v=cur[k],p=prev[k];const opc=v.users?100*v.active/v.users:null,fr=v.users?v.orders/v.users:null,gpu=v.users?v.gmv/v.users:null;
+    const opcP=p&&p.users?100*p.active/p.users:null,frP=p&&p.users?p.orders/p.users:null;
+    h+=`<tr><td class="city">${k}</td><td class="num">${fmt(v.users)}</td>
+      <td class="num">${pct(opc)}${deltaInline(opcP!=null?opc-opcP:null,true,'pp')}</td>
+      <td class="num">${fmt(v.orders)}</td>
+      <td class="num">${fmt(fr,3)}${deltaInline(frP!=null?pctChg(fr,frP):null)}</td>
+      <td class="num">${fmt(gpu,2)}</td></tr>`;});
+  h+='</tbody>';document.getElementById('cohfreq-table').innerHTML=h;
+}
+
+// ---- BOLT+ ----
+function renderBoltPlus(){
+  const wk=FILTER.week,pw=prevWeek(wk),cities=filteredCities();
+  let h='<thead><tr><th>City</th><th>Stage</th><th class="num">New subs</th><th class="num">Bolt+ orders</th><th class="num">Bolt+ order share</th><th class="num">Bolt+ GMV adoption</th><th class="num">Subscriber freq</th></tr></thead><tbody>';
+  cities.forEach(c=>{const cur=cityWeek(c,wk),prev=pw?cityWeek(c,pw):null;if(!cur)return;const subs=subsWeek(c,wk),subsp=pw?subsWeek(c,pw):0;
+    const freq=cur.bp_users?cur.bp_orders/cur.bp_users:null, freqp=prev&&prev.bp_users?prev.bp_orders/prev.bp_users:null;
+    h+=`<tr><td class="city">${c}</td><td><span class="stage-chip">${ROSTER[c]}</span></td>
+      <td class="num">${fmt(subs)}${deltaInline(pctChg(subs,subsp))}</td>
+      <td class="num">${fmt(cur.bp_orders)}${deltaInline(prev?pctChg(cur.bp_orders,prev.bp_orders):null)}</td>
+      <td class="num">${pct(cur.bp_share)}${deltaInline(prev&&prev.bp_share!=null?cur.bp_share-prev.bp_share:null,true,'pp')}</td>
+      <td class="num">${pct(cur.bp_gmv_share)}${deltaInline(prev&&prev.bp_gmv_share!=null?cur.bp_gmv_share-prev.bp_gmv_share:null,true,'pp')}</td>
+      <td class="num">${fmt(freq,2)}${deltaInline(freqp!=null?pctChg(freq,freqp):null)}</td></tr>`;});
+  h+='</tbody>';document.getElementById('bp-table').innerHTML=h;
+}
+
+// ---- PROVIDERS (FF-only on top) ----
+function fundingType(p){if(p.bolt_spend>0&&p.provider_spend<=0)return 'FF';if(p.bolt_spend>0&&p.provider_spend>0)return 'CS';if(p.provider_spend>0)return 'PF';return '—';}
+function renderProviders(){
+  const cities=new Set(filteredCities());
+  const seg=document.getElementById('prov-seg').value, ft=document.getElementById('prov-ft').value;
+  let rows=DATA.provider_top.filter(p=>cities.has(p.city_name)).map(p=>({...p,ft:fundingType(p),tot:p.bolt_spend+p.provider_spend}));
+  if(seg!=='All')rows=rows.filter(p=>p.segment===seg);
+  if(ft!=='All')rows=rows.filter(p=>p.ft===ft);
+  const rank={FF:0,CS:1,PF:2,'—':3};
+  rows.sort((a,b)=>(rank[a.ft]-rank[b.ft])|| (b.bolt_spend-a.bolt_spend) || (b.tot-a.tot));
+  rows=rows.slice(0,50);
+  let h='<thead><tr><th>Provider</th><th>City</th><th>Segment</th><th>Funding</th><th class="num">Campaign orders</th><th class="num">Bolt €</th><th class="num">Provider €</th><th>Split</th><th>AM</th></tr></thead><tbody>';
+  rows.forEach(p=>{const bp=p.tot?100*p.bolt_spend/p.tot:0;const bcl=p.ft==='FF'?'b-ff':p.ft==='CS'?'b-cs':'b-pf';
+    h+=`<tr class="${p.ft==='FF'?'ff-row':''}"><td class="city">${p.brand_name||p.provider_name}</td><td>${p.city_name}</td><td><span class="stage-chip">${p.segment}</span></td>
+      <td><span class="badge ${bcl}">${p.ft}</span></td>
+      <td class="num">${fmt(p.campaign_orders)}</td><td class="num">${eur(p.bolt_spend)}</td><td class="num">${eur(p.provider_spend)}</td>
+      <td><span class="bar"><span class="b-bolt" style="width:${bp}%"></span><span class="b-prov" style="width:${100-bp}%"></span></span> <span class="mini">${fmt(bp,0)}/${fmt(100-bp,0)}</span></td>
+      <td class="mini">${p.am}</td></tr>`;});
+  h+='</tbody>';document.getElementById('prov-table').innerHTML=h;
+}
+
+// ---- OBJECTIVE MIX ----
+function renderObjective(){
+  const cities=new Set(filteredCities());const wks=new Set(COMPLETE.slice(-4));
+  const rows=DATA.objective_weekly.filter(r=>cities.has(r.city_name)&&wks.has(r.week_start));
+  const m={};rows.forEach(r=>{const k=r.spend_objective;m[k]=m[k]||{bolt:0,prov:0,orders:0};m[k].bolt+=r.bolt_spend;m[k].prov+=r.provider_spend;m[k].orders+=r.orders;});
+  const arr=Object.entries(m).map(([k,v])=>({obj:k,...v,tot:v.bolt+v.prov})).sort((a,b)=>b.tot-a.tot);
+  const grand=sum(arr.map(a=>a.tot))||1;
+  let h='<thead><tr><th>Spend objective</th><th class="num">Total €</th><th class="num">% of spend</th><th class="num">Bolt €</th><th class="num">Provider €</th><th>Split</th><th class="num">Campaign orders</th></tr></thead><tbody>';
+  arr.forEach(a=>{const bp=a.tot?100*a.bolt/a.tot:0;
+    h+=`<tr><td>${a.obj}</td><td class="num">${keur(a.tot)}</td><td class="num">${pct(100*a.tot/grand)}</td>
+      <td class="num">${keur(a.bolt)}</td><td class="num">${keur(a.prov)}</td>
+      <td><span class="bar"><span class="b-bolt" style="width:${bp}%"></span><span class="b-prov" style="width:${100-bp}%"></span></span></td>
+      <td class="num">${fmt(a.orders)}</td></tr>`;});
+  h+='</tbody>';document.getElementById('obj-table').innerHTML=h;
+}
+
+function renderBannerAndStatic(){
+  const wk=FILTER.week,wm=WMETA.find(w=>w.start===wk);
+  const b=document.getElementById('wkbanner');
+  if(wm&&!wm.complete)b.className='wkbanner warn',b.innerHTML=`⚠ ${wm.label} is the current, <b>incomplete</b> week — numbers are partial. Default view uses the latest complete week (${LABEL[LATEST_COMPLETE]}).`;
+  else b.className='wkbanner ok',b.innerHTML=`Showing complete week <b>${LABEL[wk]}</b> (${wk} → ${addDays(wk,6).toISOString().slice(0,10)}), compared WoW to ${prevWeek(wk)?LABEL[prevWeek(wk)]:'–'}.`;
+}
+function applyBoltableMode(){
+  if(!CONFIG.boltable)return;
+  const nav=document.getElementById('nav-defs');
+  const sec=document.getElementById('defs');
+  if(nav)nav.style.display='none';
+  if(sec)sec.style.display='none';
+}
+function renderStatic(){
+  document.getElementById('meta-chips').innerHTML=[`Generated ${DATA.meta.generated_at}`,`Country: ${DATA.meta.country}`,`Vertical: ${DATA.meta.vertical}`,
+    `Latest complete: ${LABEL[LATEST_COMPLETE]}`,`Finished order = '${DATA.meta.order_status_finished}'`].map(c=>`<span class="chip">${c}</span>`).join('');
+  if(CONFIG.boltable)return;
+  const defs=[
+    ['Orders','Distinct delivered food orders (order_state = delivered).'],
+    ['GMV','Sum of order_gmv_eur (gross basket, EUR).'],
+    ['AOV','GMV ÷ orders.'],
+    ['DI spend','campaign_spend_bolt_eur + campaign_spend_provider_eur (= campaign_discount_eur).'],
+    ['DI / order','DI spend ÷ orders (secondary efficiency unit).'],
+    ['DI % (total)','Total campaign discount (Bolt + provider funded) ÷ gross GMV. Matches Looker campaign_discount_gmv_share.'],
+    ['DI % FF (Bolt)','Bolt-funded campaign spend ÷ gross GMV — the share Bolt pays. Matches Looker campaign_spend_bolt_gmv_share.'],
+    ['Bolt+ GMV adoption','GMV on Bolt+ orders ÷ total GMV (is more GMV flowing through Bolt+?).'],
+    ['Cohort order frequency','Orders ÷ users for each V2 cohort that week (mart_user_cohort_campaigns_lcp_weekly joined to orders).'],
+    ['New users / Activated','Users whose first food order is in the window (tracker term: "New Users").'],
+    ['Same-day activation','Signups with first food order on signup day ÷ signups (validated vs tracker ±1–2pp).'],
+    ['D7 activation','Signups with first food order within 7 days ÷ signups.'],
+    ['Order-depth (≥N within D28)','Share of a signup cohort reaching their Nth food order within 28 days of signup (fixed window — comparable across cohorts).'],
+    ['D7/D14/D28 repeat','Share of a cohort placing ≥2 food orders within 7/14/28 days of signup.'],
+    ['Orders/signup (D28)','Total food orders within 28 days ÷ cohort signups (frequency).'],
+    ['Bolt+ order share','Distinct Bolt+ orders ÷ delivered orders.'],
+    ['New Bolt+ subs','Users with first Bolt+ subscription in the week.'],
+    ['Subscriber freq','Bolt+ orders ÷ distinct Bolt+ ordering users.'],
+  ];
+  document.getElementById('defs-list').innerHTML=defs.map(d=>`<dt>${d[0]}</dt><dd>${d[1]}</dd>`).join('');
+  const open=[
+    ['Per-city migration dates','Not provided → WoW shows trajectory, but true pre/post needs each city\'s V2 migration date.'],
+    ['Bolt+ conversion from Plus-Ready','"Plus-Ready" audience denominator isn\'t in these tables; needs the SP/targeting source.'],
+    ['IC vs non-IC merchants','No confirmed IC flag in dim_provider_v2 → omitted rather than guessed.'],
+    ['Late activation (D14+)','Activation Performance tracker is authoritative for late activation; here we use Same-day/D7 (observable).'],
+  ];
+  document.getElementById('open-list').innerHTML=open.map(d=>`<dt>${d[0]}</dt><dd>${d[1]}</dd>`).join('');
+}
+
+function render(){renderBannerAndStatic();renderExec();renderCities();renderStages();renderTrends();renderActivation();renderRetention();renderCohortFreq();renderBoltPlus();renderProviders();renderObjective();}
+applyBoltableMode();initFilters();renderStatic();render();
+</script>
+</body>
+</html>

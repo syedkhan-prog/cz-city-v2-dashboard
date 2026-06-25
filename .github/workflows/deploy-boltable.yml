@@ -1,0 +1,29 @@
+name: Deploy to Boltable
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-boltable-cz-city-v2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Mirror main to boltable/cz-city-v2-dashboard
+        env:
+          BOLTABLE_PUSH_TOKEN: ${{ secrets.BOLTABLE_PUSH_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add boltable "https://x-access-token:${BOLTABLE_PUSH_TOKEN}@github.com/boltable/cz-city-v2-dashboard.git"
+          git push boltable HEAD:main

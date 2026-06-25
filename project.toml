@@ -1,0 +1,12 @@
+# Boltable build descriptor — non-secret config only.
+
+[_]
+schema-version = "0.2"
+
+[[io.buildpacks.env.build]]
+name = "BPE_BOLTABLE"
+value = "1"
+
+[[io.buildpacks.env.build]]
+name = "BPE_GITHUB_REPO"
+value = "syedkhan-prog/cz-city-v2-dashboard"
