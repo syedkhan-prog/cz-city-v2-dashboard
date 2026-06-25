@@ -8,8 +8,18 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, PlainTextResponse
 
 HERE = Path(__file__).resolve().parent
-BOLTABLE = os.environ.get("BPE_BOLTABLE") == "1"
-HTML_PATH = HERE / ("boltable" if BOLTABLE else "docs") / "index.html"
+
+
+def is_boltable() -> bool:
+    if os.environ.get("LOCAL_DEV") == "1":
+        return False
+    if os.environ.get("BOLTABLE") == "1" or os.environ.get("BPE_BOLTABLE") == "1":
+        return True
+    # Boltable runs on Kubernetes — BPE_BOLTABLE is build-time only, not injected at runtime.
+    return bool(os.environ.get("KUBERNETES_SERVICE_HOST"))
+
+
+HTML_PATH = HERE / ("boltable" if is_boltable() else "docs") / "index.html"
 
 app = FastAPI(title="CZ City V2 Setup Dashboard")
 
