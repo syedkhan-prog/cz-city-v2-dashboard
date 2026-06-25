@@ -129,8 +129,7 @@ h3{font-size:13px;font-weight:650;margin:4px 0 8px}
   <a href="#boltplus">Bolt+</a>
   <a href="#providers">Providers (co-funding)</a>
   <a href="#dimix">DI type mix</a>
-  <a href="#defs" id="nav-defs">Definitions &amp; open items</a>
-</nav>
+  </nav>
 
 <div class="container">
   <section id="exec"><h2>Summary</h2><div class="sub" id="exec-sub"></div><div class="kpis" id="exec-kpis"></div>
@@ -204,26 +203,7 @@ h3{font-size:13px;font-weight:650;margin:4px 0 8px}
     <div class="tbl-wrap"><table id="obj-table"></table></div>
   </section>
 
-  <section id="defs"><h2>Definitions, decision logic &amp; open items</h2>
-    <div class="grid2">
-      <div>
-        <h3>Metric definitions (as computed)</h3>
-        <dl class="defs" id="defs-list"></dl>
-      </div>
-      <div>
-        <h3>Red / Yellow / Green logic <span class="mini">(WoW; thresholds = assumptions)</span></h3>
-        <dl class="defs">
-          <dt>Green — Keep</dt><dd>Orders &amp; GMV ≥ −2% WoW AND DI/order not rising (≤ 0%) AND same-day activation Δ ≥ −1pp.</dd>
-          <dt>Red — Investigate / Revert</dt><dd>Orders or GMV ≤ −8% WoW; OR DI/order up &gt; +5% while orders flat-to-down; OR same-day activation Δ ≤ −3pp <i>and</i> orders also down ≥2%. (Volume-aware — won't flag a city red while orders &amp; GMV clearly grow.)</dd>
-          <dt>Yellow — Monitor / Optimize</dt><dd>Everything in between.</dd>
-          <dt>Low-signal</dt><dd>&lt; 40 orders in the week — % swings unreliable, judged manually.</dd>
-        </dl>
-        <h3 style="margin-top:14px">Open items (need stakeholder/data input)</h3>
-        <dl class="defs" id="open-list"></dl>
-      </div>
-    </div>
-  </section>
-</div>
+  </div>
 
 <script>
 const CONFIG = {"boltable": true};
@@ -625,17 +605,11 @@ function renderBannerAndStatic(){
   if(wm&&!wm.complete)b.className='wkbanner warn',b.innerHTML=`⚠ ${wm.label} is the current, <b>incomplete</b> week — numbers are partial. Default view uses the latest complete week (${LABEL[LATEST_COMPLETE]}).`;
   else b.className='wkbanner ok',b.innerHTML=`Showing complete week <b>${LABEL[wk]}</b> (${wk} → ${addDays(wk,6).toISOString().slice(0,10)}), compared WoW to ${prevWeek(wk)?LABEL[prevWeek(wk)]:'–'}.`;
 }
-function applyBoltableMode(){
-  if(!CONFIG.boltable)return;
-  const nav=document.getElementById('nav-defs');
-  const sec=document.getElementById('defs');
-  if(nav)nav.style.display='none';
-  if(sec)sec.style.display='none';
-}
 function renderStatic(){
   document.getElementById('meta-chips').innerHTML=[`Generated ${DATA.meta.generated_at}`,`Country: ${DATA.meta.country}`,`Vertical: ${DATA.meta.vertical}`,
     `Latest complete: ${LABEL[LATEST_COMPLETE]}`,`Finished order = '${DATA.meta.order_status_finished}'`].map(c=>`<span class="chip">${c}</span>`).join('');
-  if(CONFIG.boltable)return;
+  const defsList=document.getElementById('defs-list'), openList=document.getElementById('open-list');
+  if(!defsList||!openList)return;
   const defs=[
     ['Orders','Distinct delivered food orders (order_state = delivered).'],
     ['GMV','Sum of order_gmv_eur (gross basket, EUR).'],
@@ -667,7 +641,7 @@ function renderStatic(){
 }
 
 function render(){renderBannerAndStatic();renderExec();renderCities();renderStages();renderTrends();renderActivation();renderRetention();renderCohortFreq();renderBoltPlus();renderProviders();renderObjective();}
-applyBoltableMode();initFilters();renderStatic();render();
+initFilters();renderStatic();render();
 </script>
 </body>
 </html>

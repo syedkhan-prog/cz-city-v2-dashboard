@@ -129,7 +129,9 @@ h3{font-size:13px;font-weight:650;margin:4px 0 8px}
   <a href="#boltplus">Bolt+</a>
   <a href="#providers">Providers (co-funding)</a>
   <a href="#dimix">DI type mix</a>
+  <!-- boltable:omit:start -->
   <a href="#defs" id="nav-defs">Definitions &amp; open items</a>
+  <!-- boltable:omit:end -->
 </nav>
 
 <div class="container">
@@ -204,6 +206,7 @@ h3{font-size:13px;font-weight:650;margin:4px 0 8px}
     <div class="tbl-wrap"><table id="obj-table"></table></div>
   </section>
 
+  <!-- boltable:omit:start -->
   <section id="defs"><h2>Definitions, decision logic &amp; open items</h2>
     <div class="grid2">
       <div>
@@ -223,6 +226,7 @@ h3{font-size:13px;font-weight:650;margin:4px 0 8px}
       </div>
     </div>
   </section>
+  <!-- boltable:omit:end -->
 </div>
 
 <script>
@@ -625,17 +629,11 @@ function renderBannerAndStatic(){
   if(wm&&!wm.complete)b.className='wkbanner warn',b.innerHTML=`⚠ ${wm.label} is the current, <b>incomplete</b> week — numbers are partial. Default view uses the latest complete week (${LABEL[LATEST_COMPLETE]}).`;
   else b.className='wkbanner ok',b.innerHTML=`Showing complete week <b>${LABEL[wk]}</b> (${wk} → ${addDays(wk,6).toISOString().slice(0,10)}), compared WoW to ${prevWeek(wk)?LABEL[prevWeek(wk)]:'–'}.`;
 }
-function applyBoltableMode(){
-  if(!CONFIG.boltable)return;
-  const nav=document.getElementById('nav-defs');
-  const sec=document.getElementById('defs');
-  if(nav)nav.style.display='none';
-  if(sec)sec.style.display='none';
-}
 function renderStatic(){
   document.getElementById('meta-chips').innerHTML=[`Generated ${DATA.meta.generated_at}`,`Country: ${DATA.meta.country}`,`Vertical: ${DATA.meta.vertical}`,
     `Latest complete: ${LABEL[LATEST_COMPLETE]}`,`Finished order = '${DATA.meta.order_status_finished}'`].map(c=>`<span class="chip">${c}</span>`).join('');
-  if(CONFIG.boltable)return;
+  const defsList=document.getElementById('defs-list'), openList=document.getElementById('open-list');
+  if(!defsList||!openList)return;
   const defs=[
     ['Orders','Distinct delivered food orders (order_state = delivered).'],
     ['GMV','Sum of order_gmv_eur (gross basket, EUR).'],
@@ -667,7 +665,7 @@ function renderStatic(){
 }
 
 function render(){renderBannerAndStatic();renderExec();renderCities();renderStages();renderTrends();renderActivation();renderRetention();renderCohortFreq();renderBoltPlus();renderProviders();renderObjective();}
-applyBoltableMode();initFilters();renderStatic();render();
+initFilters();renderStatic();render();
 </script>
 </body>
 </html>

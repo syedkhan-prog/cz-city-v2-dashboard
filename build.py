@@ -3,15 +3,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+BOLTABLE_OMIT = re.compile(
+    r"<!-- boltable:omit:start -->.*?<!-- boltable:omit:end -->\n?",
+    re.DOTALL,
+)
 
 
 def _render(tpl: str, data: dict, *, boltable: bool) -> str:
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
     config = json.dumps({"boltable": boltable})
-    return tpl.replace("__DATA__", payload).replace("__CONFIG__", config)
+    html = tpl.replace("__DATA__", payload).replace("__CONFIG__", config)
+    if boltable:
+        html = BOLTABLE_OMIT.sub("", html)
+    return html
 
 
 def build(*, write_local: bool = True) -> dict[str, Path]:
