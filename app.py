@@ -17,7 +17,7 @@ def html_path() -> Path:
     return HERE / "boltable" / "index.html"
 
 
-app = FastAPI(title="CZ City V2 Setup Dashboard")
+app = FastAPI(title="New Cities Launch Tracker")
 
 
 @app.get("/health", response_class=PlainTextResponse)
