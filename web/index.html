@@ -115,6 +115,7 @@ h3{font-size:13px;font-weight:650;margin:4px 0 8px}
 </header>
 
 <div class="toolbar">
+  <label>Country<select id="f-country"></select></label>
   <label>Week<select id="f-week"></select></label>
   <label>Lifecycle stage<select id="f-stage"></select></label>
   <label>City<select id="f-city"></select></label>
@@ -244,8 +245,14 @@ const pct=(n,d=1)=>n==null||isNaN(n)?'–':fmt(n,d)+'%';
 const sum=(a)=>a.reduce((s,x)=>s+(x||0),0);
 const uniq=(a)=>[...new Set(a)];
 
-const STAGE_ORDER=["Launch","Re-launch","Good CVP & Good Pen","Good CVP Low Pen","Poor CVP - Selection","Poor CVP - Selection + Service","Poor CVP - Service","Ready to BAU","Closed"];
+const STAGE_ORDER=["Launch","Re-launch","Good CVP & Good Pen","Good CVP Low Pen","Poor CVP - Selection","Poor CVP - Selection + Service","Poor CVP - Service","Ready to BAU","Dormant","Closed"];
 const ROSTER=DATA.meta.roster;
+const COUNTRIES=DATA.meta.countries||{cz:{label:'CZ',name:'Czech Republic'},sk:{label:'SK',name:'Slovakia'}};
+const DEFAULT_COUNTRY=DATA.meta.default_country||'cz';
+function stageOf(c){const r=ROSTER[c];return (r&&r.stage)?r.stage:r;}
+function countryOf(c){const r=ROSTER[c];return (r&&r.country)?r.country:'cz';}
+function countryLabel(code){return (COUNTRIES[code]||{}).label||code.toUpperCase();}
+function rosterCities(country){return Object.keys(ROSTER).filter(c=>country==='all'||countryOf(c)===country);}
 const WMETA=DATA.meta.weeks_meta;
 const WEEKS=WMETA.map(w=>w.start);
 const COMPLETE=WMETA.filter(w=>w.complete).map(w=>w.start);
@@ -285,20 +292,35 @@ function actWeek(city,wk){const r=rowFor(AW,city,wk,'signup_week');if(!r)return 
 function subsWeek(city,wk){const r=rowFor(SW,city,wk,'sub_week');return r?r.new_subscribers:0;}
 
 // ---- filters ----
-let FILTER={week:LATEST_COMPLETE,stage:'All',city:'All',closed:1};
-function filteredCities(){let cs=Object.keys(ROSTER);
-  if(FILTER.closed==1)cs=cs.filter(c=>ROSTER[c]!=='Closed');
-  if(FILTER.stage!=='All')cs=cs.filter(c=>ROSTER[c]===FILTER.stage);
+let FILTER={country:DEFAULT_COUNTRY,week:LATEST_COMPLETE,stage:'All',city:'All',closed:1};
+function filteredCities(){let cs=rosterCities(FILTER.country);
+  if(FILTER.closed==1)cs=cs.filter(c=>stageOf(c)!=='Closed');
+  if(FILTER.stage!=='All')cs=cs.filter(c=>stageOf(c)===FILTER.stage);
   if(FILTER.city!=='All')cs=cs.filter(c=>c===FILTER.city);
-  return cs.sort((a,b)=>(STAGE_ORDER.indexOf(ROSTER[a])-STAGE_ORDER.indexOf(ROSTER[b]))||a.localeCompare(b));}
+  return cs.sort((a,b)=>(STAGE_ORDER.indexOf(stageOf(a))-STAGE_ORDER.indexOf(stageOf(b)))||a.localeCompare(b));}
+
+function updateDependentFilters(){
+  const stages=['All',...STAGE_ORDER.filter(s=>rosterCities(FILTER.country).some(c=>stageOf(c)===s))];
+  const fc=document.getElementById('f-stage');
+  if(!stages.includes(FILTER.stage))FILTER.stage='All';
+  fc.innerHTML=stages.map(s=>`<option>${s}</option>`).join('');
+  fc.value=FILTER.stage;
+  const cities=['All',...rosterCities(FILTER.country).sort()];
+  const fci=document.getElementById('f-city');
+  if(!cities.includes(FILTER.city))FILTER.city='All';
+  fci.innerHTML=cities.map(c=>`<option>${c}</option>`).join('');
+  fci.value=FILTER.city;
+}
 
 function initFilters(){
+  const fco=document.getElementById('f-country');
+  fco.innerHTML=Object.entries(COUNTRIES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')+'<option value="all">All</option>';
+  fco.value=FILTER.country;
   const fw=document.getElementById('f-week');
   fw.innerHTML=WMETA.slice().reverse().map(w=>`<option value="${w.start}">${w.label}${w.complete?'':' (partial — incomplete)'}</option>`).join('');
   fw.value=FILTER.week;
-  const stages=['All',...STAGE_ORDER.filter(s=>Object.values(ROSTER).includes(s))];
-  document.getElementById('f-stage').innerHTML=stages.map(s=>`<option>${s}</option>`).join('');
-  document.getElementById('f-city').innerHTML=['All',...Object.keys(ROSTER).sort()].map(c=>`<option>${c}</option>`).join('');
+  updateDependentFilters();
+  fco.onchange=e=>{FILTER.country=e.target.value;updateDependentFilters();render();};
   fw.onchange=e=>{FILTER.week=e.target.value;render();};
   document.getElementById('f-stage').onchange=e=>{FILTER.stage=e.target.value;render();};
   document.getElementById('f-city').onchange=e=>{FILTER.city=e.target.value;render();};
@@ -307,7 +329,7 @@ function initFilters(){
   document.getElementById('prov-seg').innerHTML=segs.map(s=>`<option>${s}</option>`).join('');
   document.getElementById('prov-seg').onchange=()=>renderProviders();
   document.getElementById('prov-ft').onchange=()=>renderProviders();
-  document.getElementById('btn-reset').onclick=()=>{FILTER={week:LATEST_COMPLETE,stage:'All',city:'All',closed:1};fw.value=LATEST_COMPLETE;document.getElementById('f-stage').value='All';document.getElementById('f-city').value='All';document.getElementById('f-closed').value='1';render();};
+  document.getElementById('btn-reset').onclick=()=>{FILTER={country:DEFAULT_COUNTRY,week:LATEST_COMPLETE,stage:'All',city:'All',closed:1};fco.value=DEFAULT_COUNTRY;fw.value=LATEST_COMPLETE;document.getElementById('f-closed').value='1';updateDependentFilters();render();};
 }
 
 // delta helpers
@@ -335,7 +357,7 @@ function rygFor(c){
   const dipoChg=cur&&prev?pctChg(cur.di_po,prev.di_po):null;
   const sdDelta=(acur&&aprev&&acur.sd_rate!=null&&aprev.sd_rate!=null)?(acur.sd_rate-aprev.sd_rate):null;
   let status,action;
-  if(ROSTER[c]==='Closed'){status='gray';action='—';}
+  if(stageOf(c)==='Closed'){status='gray';action='—';}
   else if(!cur||cur.orders<40){status='gray';action='Low-signal';}
   else{
     const volDrop=(ordChg!=null&&ordChg<=-8)||(gmvChg!=null&&gmvChg<=-8);
@@ -361,14 +383,14 @@ function renderExec(){
   const cur=aggWeek(cities,wk), prev=pw?aggWeek(cities,pw):null;
   const acur=aggAct(cities,wk), aprev=pw?aggAct(cities,pw):null;
   const subsCur=aggSubs(cities,wk), subsPrev=pw?aggSubs(cities,pw):0;
-  const active=cities.filter(c=>ROSTER[c]!=='Closed').length;
+  const active=cities.filter(c=>stageOf(c)!=='Closed').length;
+  const cLbl=FILTER.country==='all'?'All countries':countryLabel(FILTER.country);
   const sd=acur.signups?100*acur.d0/acur.signups:null, sdp=aprev&&aprev.signups?100*aprev.d0/aprev.signups:null;
-  const dipo=cur.orders?cur.di/cur.orders:null, dipop=prev&&prev.orders?prev.di/prev.orders:null;
   const dipct=cur.gmv?100*cur.di/cur.gmv:null, dipctp=prev&&prev.gmv?100*prev.di/prev.gmv:null;
   const diff=cur.gmv?100*cur.bolt/cur.gmv:null, diffp=prev&&prev.gmv?100*prev.bolt/prev.gmv:null;
   const bpgmv=cur.gmv?100*cur.bp_gmv/cur.gmv:null, bpgmvp=prev&&prev.gmv?100*prev.bp_gmv/prev.gmv:null;
   let g=0,y=0,r=0,x=0;cities.forEach(c=>{const s=rygFor(c).status;if(s==='green')g++;else if(s==='yellow')y++;else if(s==='red')r++;else x++;});
-  document.getElementById('exec-sub').innerHTML=`Week <b>${LABEL[wk]}</b> vs <b>${pw?LABEL[pw]:'–'}</b> (WoW) · ${cities.length} cities in view (${active} active under V2)`;
+  document.getElementById('exec-sub').innerHTML=`Week <b>${LABEL[wk]}</b> vs <b>${pw?LABEL[pw]:'–'}</b> (WoW) · ${cLbl} · ${cities.length} cities in view (${active} active under V2)`;
   const cards=[
     ['Active cities (V2)',fmt(active),`${cities.length} in view`],
     ['Orders',fmt(cur.orders),deltaBadge(prev?pctChg(cur.orders,prev.orders):null)],
@@ -392,7 +414,7 @@ function renderCities(){
   const cities=filteredCities(), pw=prevWeek(FILTER.week);
   const rows=cities.map(c=>{const R=rygFor(c);const cur=R.cur||{};const prev=R.prev||null;
     const subs=subsWeek(c,FILTER.week), subsp=pw?subsWeek(c,pw):null;
-    return {city:c,stage:ROSTER[c],...R,
+    return {city:c,country:countryOf(c),stage:stageOf(c),...R,
     orders:cur.orders??null,gmv:cur.gmv??null,aov:cur.aov??null,di_po:cur.di_po??null,
     di_pct:cur.di_pct??null,di_pct_ff:cur.di_pct_ff??null,
     bp_share:cur.bp_share??null,freq:cur.freq??null,sd:R.acur?R.acur.sd_rate:null,subs:subs,
@@ -402,14 +424,14 @@ function renderCities(){
     subsChg:(subsp!=null)?pctChg(subs,subsp):null};});
   const sk=SORT.key;
   rows.sort((a,b)=>{let va=a[sk],vb=b[sk];if(typeof va==='string')return SORT.dir*va.localeCompare(vb);return SORT.dir*(((va==null)?-1e15:va)-((vb==null)?-1e15:vb));});
-  const cols=[['city','City',0],['stage','Stage',0],['orders','Orders',1],['gmv','GMV €',1],['aov','AOV €',1],
+  const cols=[['city','City',0],...(FILTER.country==='all'?[['country','Country',0]]:[]),['stage','Stage',0],['orders','Orders',1],['gmv','GMV €',1],['aov','AOV €',1],
     ['sd','Same-day act',1],['freq','Orders/user',1],['di_po','DI/order €',1],['di_pct','DI % (total)',1],['di_pct_ff','DI % FF (Bolt)',1],['bp_share','Bolt+ share',1],['subs','New subs',1],['status','Status',0],['action','Action',0]];
   let h='<thead><tr>'+cols.map(c=>`<th class="${c[2]?'num':''}" data-k="${c[0]}">${c[1]}</th>`).join('')+'</tr></thead><tbody>';
   rows.forEach(r=>{
     const stx=r.status==='green'?'g':r.status==='yellow'?'y':r.status==='red'?'r':'x';
     const bclass=r.status==='green'?'b-green':r.status==='yellow'?'b-yellow':r.status==='red'?'b-red':'b-gray';
     h+=`<tr>
-      <td class="city">${r.city}</td><td><span class="stage-chip">${r.stage}</span></td>
+      <td class="city">${r.city}</td>${FILTER.country==='all'?`<td>${countryLabel(r.country)}</td>`:''}<td><span class="stage-chip">${r.stage}</span></td>
       <td class="num">${fmt(r.orders)}${deltaInline(r.ordChg)}</td>
       <td class="num">${kfmt(r.gmv)}${deltaInline(r.gmvChg)}</td>
       <td class="num">${fmt(r.aov,1)}</td>
@@ -430,11 +452,11 @@ function renderCities(){
 // ---- STAGE TABLE ----
 function renderStages(){
   const wk=FILTER.week,pw=prevWeek(wk);
-  let cs=Object.keys(ROSTER);if(FILTER.closed==1)cs=cs.filter(c=>ROSTER[c]!=='Closed');
+  let cs=rosterCities(FILTER.country);if(FILTER.closed==1)cs=cs.filter(c=>stageOf(c)!=='Closed');
   if(FILTER.city!=='All')cs=cs.filter(c=>c===FILTER.city);
-  const stages=uniq(cs.map(c=>ROSTER[c])).sort((a,b)=>STAGE_ORDER.indexOf(a)-STAGE_ORDER.indexOf(b));
+  const stages=uniq(cs.map(c=>stageOf(c))).sort((a,b)=>STAGE_ORDER.indexOf(a)-STAGE_ORDER.indexOf(b));
   let h='<thead><tr><th>Stage</th><th class="num"># Cities</th><th class="num">Orders</th><th class="num">GMV €</th><th class="num">DI/order €</th><th class="num">DI %</th><th class="num">Same-day act</th><th class="num">New subs</th></tr></thead><tbody>';
-  stages.forEach(s=>{const list=cs.filter(c=>ROSTER[c]===s);
+  stages.forEach(s=>{const list=cs.filter(c=>stageOf(c)===s);
     const cur=aggWeek(list,wk),prev=pw?aggWeek(list,pw):null,a=aggAct(list,wk),subs=aggSubs(list,wk);
     const dipo=cur.orders?cur.di/cur.orders:null,dipop=prev&&prev.orders?prev.di/prev.orders:null;
     h+=`<tr><td><span class="stage-chip">${s}</span></td><td class="num">${list.length}</td>
@@ -510,7 +532,7 @@ function renderActivation(){
   const wk=FILTER.week,pw=prevWeek(wk),cities=filteredCities();
   let h='<thead><tr><th>City</th><th>Stage</th><th class="num">Signups</th><th class="num">New users</th><th class="num">Same-day rate</th><th class="num">D7 rate</th></tr></thead><tbody>';
   cities.forEach(c=>{const a=actWeek(c,wk),p=pw?actWeek(c,pw):null;if(!a)return;
-    h+=`<tr><td class="city">${c}</td><td><span class="stage-chip">${ROSTER[c]}</span></td>
+    h+=`<tr><td class="city">${c}</td><td><span class="stage-chip">${stageOf(c)}</span></td>
       <td class="num">${fmt(a.signups)}${deltaInline(p?pctChg(a.signups,p.signups):null)}</td>
       <td class="num">${fmt(a.activated)}${deltaInline(p?pctChg(a.activated,p.activated):null)}</td>
       <td class="num">${pct(a.sd_rate)}${deltaInline(p&&p.sd_rate!=null?a.sd_rate-p.sd_rate:null,true,'pp')}</td>
@@ -581,7 +603,7 @@ function renderBoltPlus(){
   let h='<thead><tr><th>City</th><th>Stage</th><th class="num">New subs</th><th class="num">Bolt+ orders</th><th class="num">Bolt+ order share</th><th class="num">Bolt+ GMV adoption</th><th class="num">Subscriber freq</th></tr></thead><tbody>';
   cities.forEach(c=>{const cur=cityWeek(c,wk),prev=pw?cityWeek(c,pw):null;if(!cur)return;const subs=subsWeek(c,wk),subsp=pw?subsWeek(c,pw):0;
     const freq=cur.bp_users?cur.bp_orders/cur.bp_users:null, freqp=prev&&prev.bp_users?prev.bp_orders/prev.bp_users:null;
-    h+=`<tr><td class="city">${c}</td><td><span class="stage-chip">${ROSTER[c]}</span></td>
+    h+=`<tr><td class="city">${c}</td><td><span class="stage-chip">${stageOf(c)}</span></td>
       <td class="num">${fmt(subs)}${deltaInline(pctChg(subs,subsp))}</td>
       <td class="num">${fmt(cur.bp_orders)}${deltaInline(prev?pctChg(cur.bp_orders,prev.bp_orders):null)}</td>
       <td class="num">${pct(cur.bp_share)}${deltaInline(prev&&prev.bp_share!=null?cur.bp_share-prev.bp_share:null,true,'pp')}</td>

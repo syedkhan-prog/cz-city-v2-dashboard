@@ -1,4 +1,4 @@
-"""Pull CZ City V2 discount-setup monitoring data from Databricks.
+"""Pull City V2 discount-setup monitoring data from Databricks (CZ + SK).
 
 Sources (all real, verified):
   - ng_delivery_spark.dim_order_delivery        order-level orders/GMV/discount/campaign spend/Bolt+
@@ -17,9 +17,13 @@ from pathlib import Path
 
 from db import DBX
 
-# ---- City roster + V2 lifecycle stage (provided by stakeholder; city_name verified
-#      against dim_provider_v2 / dim_order_delivery) -------------------------------
-ROSTER = {
+COUNTRIES = {
+    "cz": {"code": "cz", "label": "CZ", "name": "Czech Republic"},
+    "sk": {"code": "sk", "label": "SK", "name": "Slovakia"},
+}
+
+# ---- City roster + V2 lifecycle stage (city_name verified against dim_order_delivery) -
+CZ_ROSTER = {
     "Uherske Hradiste": "Ready to BAU",
     "Most": "Good CVP & Good Pen",
     "Zlin": "Good CVP & Good Pen",
@@ -59,14 +63,63 @@ ROSTER = {
     "Strakonice": "Closed",
 }
 
+# Slovakia — city names match dim_order_delivery (verified 2026-06-27)
+SK_ROSTER = {
+    "Spišská Nová Ves": "Good CVP & Good Pen",
+    "Humenne": "Good CVP & Good Pen",
+    "Povazska Bystrica": "Good CVP & Good Pen",
+    "Michalovce": "Poor CVP - Selection",
+    "Liptovsky Mikulas": "Good CVP & Good Pen",
+    "Piestany": "Good CVP & Good Pen",
+    "Trencin": "Good CVP & Good Pen",
+    "Topolcany": "Good CVP Low Pen",
+    "Dunajska Streda": "Good CVP Low Pen",
+    "Komarno": "Dormant",
+    "Hlohovec": "Good CVP & Good Pen",
+    "Senica": "Good CVP & Good Pen",
+    "Bardejov": "Good CVP & Good Pen",
+    "Cadca": "Launch",
+    "Ruzomberok": "Good CVP & Good Pen",
+    "Levice": "Launch",
+    "Dubnica nad Vahom": "Launch",
+    "Rimavska Sobota": "Launch",
+    "Senec": "Launch",
+}
+
+ROSTER = {
+    **{k: {"country": "cz", "stage": v} for k, v in CZ_ROSTER.items()},
+    **{k: {"country": "sk", "stage": v} for k, v in SK_ROSTER.items()},
+}
+
 N_WEEKS = 13  # complete ISO weeks of history to pull
 
 
-def _city_in_list(cities) -> str:
-    return ", ".join("'" + c.replace("'", "''") + "'" for c in cities)
+def _esc(s: str) -> str:
+    return s.replace("'", "''")
 
 
-CITY_LIST_SQL = _city_in_list(ROSTER.keys())
+def _roster_union_sql() -> str:
+    parts = []
+    for city, meta in ROSTER.items():
+        cname = COUNTRIES[meta["country"]]["name"]
+        parts.append(
+            f"SELECT '{_esc(cname)}' AS country_name, '{_esc(city)}' AS city_name, "
+            f"'{meta['country']}' AS country_code"
+        )
+    return "\n          UNION ALL ".join(parts)
+
+
+def _city_map_cte() -> str:
+    return f"""
+        roster AS (
+          {_roster_union_sql()}
+        ),
+        city_map AS (
+          SELECT DISTINCT o.country_name, o.city_id, o.city_name, r.country_code
+          FROM ng_delivery_spark.dim_order_delivery o
+          INNER JOIN roster r
+            ON o.country_name = r.country_name AND o.city_name = r.city_name
+        )"""
 
 
 def _records(df):
@@ -89,29 +142,31 @@ def _records(df):
 
 
 def pull() -> dict:
+    city_cte = _city_map_cte()
     with DBX() as dbx:
-        # ---- 1. City x week: orders, GMV, discount, DI spend, Bolt+, activation, repeat
         city_weekly = dbx.query(f"""
-        WITH base AS (
+        WITH {city_cte},
+        base AS (
           SELECT
-            city_name,
-            CAST(date_trunc('WEEK', order_created_date) AS DATE) AS week_start,
-            order_id, user_id, order_state,
-            order_gmv_eur,
-            COALESCE(campaign_discount_eur, 0)       AS di_discount,
-            COALESCE(campaign_spend_bolt_eur, 0)     AS di_bolt,
-            COALESCE(campaign_spend_provider_eur, 0) AS di_provider,
-            CASE WHEN is_bolt_plus_order THEN order_gmv_eur ELSE 0 END AS bp_gmv,
-            is_bolt_plus_order, is_first_food_order,
-            has_food_order_in_next_30days_same_city  AS repeat30
-          FROM ng_delivery_spark.dim_order_delivery
-          WHERE country_name = 'Czech Republic'
-            AND delivery_vertical = 'food'
-            AND order_created_date >= date_sub(date_trunc('WEEK', current_date()), 7*{N_WEEKS})
-            AND order_created_date <= current_date()
-            AND city_name IN ({CITY_LIST_SQL})
+            o.city_name,
+            cm.country_code,
+            CAST(date_trunc('WEEK', o.order_created_date) AS DATE) AS week_start,
+            o.order_id, o.user_id, o.order_state,
+            o.order_gmv_eur,
+            COALESCE(o.campaign_discount_eur, 0)       AS di_discount,
+            COALESCE(o.campaign_spend_bolt_eur, 0)     AS di_bolt,
+            COALESCE(o.campaign_spend_provider_eur, 0) AS di_provider,
+            CASE WHEN o.is_bolt_plus_order THEN o.order_gmv_eur ELSE 0 END AS bp_gmv,
+            o.is_bolt_plus_order, o.is_first_food_order,
+            o.has_food_order_in_next_30days_same_city  AS repeat30
+          FROM ng_delivery_spark.dim_order_delivery o
+          INNER JOIN city_map cm
+            ON o.city_name = cm.city_name AND o.country_name = cm.country_name
+          WHERE o.delivery_vertical = 'food'
+            AND o.order_created_date >= date_sub(date_trunc('WEEK', current_date()), 7*{N_WEEKS})
+            AND o.order_created_date <= current_date()
         )
-        SELECT city_name, week_start,
+        SELECT city_name, country_code, week_start,
           COUNT(DISTINCT CASE WHEN order_state='delivered' THEN order_id END) AS orders,
           COUNT(DISTINCT CASE WHEN order_state='delivered' THEN user_id END)  AS active_users,
           ROUND(SUM(CASE WHEN order_state='delivered' THEN order_gmv_eur ELSE 0 END), 2) AS gmv_eur,
@@ -124,24 +179,19 @@ def pull() -> dict:
           COUNT(DISTINCT CASE WHEN order_state='delivered' AND is_first_food_order THEN user_id END) AS new_activated_users,
           COUNT(DISTINCT CASE WHEN order_state='delivered' AND repeat30 THEN user_id END) AS users_repeat_30d
         FROM base
-        GROUP BY 1, 2
-        ORDER BY 1, 2
+        GROUP BY 1, 2, 3
+        ORDER BY 1, 2, 3
         """)
 
-        # ---- 2. City x signup-week: signup -> food activation funnel
         activation_weekly = dbx.query(f"""
-        WITH cz AS (
-          SELECT DISTINCT city_id, city_name
-          FROM ng_delivery_spark.dim_order_delivery
-          WHERE country_name='Czech Republic' AND city_name IN ({CITY_LIST_SQL})
-        ),
+        WITH {city_cte},
         u AS (
-          SELECT c.city_name,
+          SELECT cm.city_name, cm.country_code,
             CAST(date_trunc('WEEK', d.user_sign_up_authorised_ts) AS DATE) AS signup_week,
             d.user_sign_up_authorised_ts AS su_ts,
             d.food_activation_ts AS act_ts
           FROM ng_delivery_spark.dim_user_delivery d
-          JOIN cz c ON d.city_id = c.city_id
+          INNER JOIN city_map cm ON d.city_id = cm.city_id
           WHERE d.user_sign_up_authorised_ts IS NOT NULL
             AND COALESCE(d.user_is_bot,false)=false
             AND COALESCE(d.is_user_test,false)=false
@@ -150,32 +200,25 @@ def pull() -> dict:
             AND date_trunc('WEEK', d.user_sign_up_authorised_ts) >= date_sub(date_trunc('WEEK', current_date()), 7*{N_WEEKS})
             AND date_trunc('WEEK', d.user_sign_up_authorised_ts) <= current_date()
         )
-        SELECT city_name, signup_week,
+        SELECT city_name, country_code, signup_week,
           COUNT(*) AS signup_users,
           COUNT(act_ts) AS activated_users,
           COUNT(CASE WHEN act_ts IS NOT NULL AND datediff(to_date(act_ts), to_date(su_ts))=0  THEN 1 END) AS activated_d0,
           COUNT(CASE WHEN act_ts IS NOT NULL AND datediff(to_date(act_ts), to_date(su_ts))<=7 THEN 1 END) AS activated_d7,
           COUNT(CASE WHEN act_ts IS NOT NULL AND datediff(to_date(act_ts), to_date(su_ts))<=14 THEN 1 END) AS activated_d14
         FROM u
-        GROUP BY 1, 2
-        ORDER BY 1, 2
+        GROUP BY 1, 2, 3
+        ORDER BY 1, 2, 3
         """)
 
-        # ---- 2b. Cohort frequency-building: order depth (Nth order within D28) + repeat
-        #      within D7/D14/D28, measured on FIXED windows from signup so cohorts are
-        #      comparable. Front-end only displays a cohort once it is mature for the window.
         cohort_depth = dbx.query(f"""
-        WITH cz AS (
-          SELECT DISTINCT city_id, city_name
-          FROM ng_delivery_spark.dim_order_delivery
-          WHERE country_name='Czech Republic' AND city_name IN ({CITY_LIST_SQL})
-        ),
+        WITH {city_cte},
         su AS (
-          SELECT d.user_id, c.city_name,
+          SELECT d.user_id, cm.city_name, cm.country_code,
             to_date(d.user_sign_up_authorised_ts) AS sd,
             CAST(date_trunc('WEEK', d.user_sign_up_authorised_ts) AS DATE) AS signup_week
           FROM ng_delivery_spark.dim_user_delivery d
-          JOIN cz c ON d.city_id = c.city_id
+          INNER JOIN city_map cm ON d.city_id = cm.city_id
           WHERE d.user_sign_up_authorised_ts IS NOT NULL
             AND COALESCE(d.user_is_bot,false)=false
             AND COALESCE(d.is_user_test,false)=false
@@ -185,21 +228,23 @@ def pull() -> dict:
             AND date_trunc('WEEK', d.user_sign_up_authorised_ts) <= current_date()
         ),
         ord AS (
-          SELECT user_id, order_created_date
-          FROM ng_delivery_spark.dim_order_delivery
-          WHERE country_name='Czech Republic' AND delivery_vertical='food' AND order_state='delivered'
-            AND order_created_date >= date_sub(date_trunc('WEEK', current_date()), 7*{N_WEEKS})
+          SELECT o.user_id, o.order_created_date
+          FROM ng_delivery_spark.dim_order_delivery o
+          INNER JOIN city_map cm
+            ON o.city_name = cm.city_name AND o.country_name = cm.country_name
+          WHERE o.delivery_vertical='food' AND o.order_state='delivered'
+            AND o.order_created_date >= date_sub(date_trunc('WEEK', current_date()), 7*{N_WEEKS})
         ),
         ucnt AS (
-          SELECT s.city_name, s.signup_week, s.user_id,
+          SELECT s.city_name, s.country_code, s.signup_week, s.user_id,
             SUM(CASE WHEN o.order_created_date BETWEEN s.sd AND date_add(s.sd,6)  THEN 1 ELSE 0 END) AS d7,
             SUM(CASE WHEN o.order_created_date BETWEEN s.sd AND date_add(s.sd,13) THEN 1 ELSE 0 END) AS d14,
             SUM(CASE WHEN o.order_created_date BETWEEN s.sd AND date_add(s.sd,27) THEN 1 ELSE 0 END) AS d28
           FROM su s
           LEFT JOIN ord o ON o.user_id = s.user_id AND o.order_created_date BETWEEN s.sd AND date_add(s.sd,27)
-          GROUP BY 1, 2, 3
+          GROUP BY 1, 2, 3, 4
         )
-        SELECT city_name, signup_week, COUNT(*) AS signups,
+        SELECT city_name, country_code, signup_week, COUNT(*) AS signups,
           SUM(CASE WHEN d28>=1 THEN 1 ELSE 0 END)  AS d28_ge1,
           SUM(CASE WHEN d28>=2 THEN 1 ELSE 0 END)  AS d28_ge2,
           SUM(CASE WHEN d28>=3 THEN 1 ELSE 0 END)  AS d28_ge3,
@@ -216,117 +261,115 @@ def pull() -> dict:
           SUM(d7)  AS orders_d7,
           SUM(d28) AS orders_d28
         FROM ucnt
-        GROUP BY 1, 2
-        ORDER BY 1, 2
+        GROUP BY 1, 2, 3
+        ORDER BY 1, 2, 3
         """)
 
-        # ---- 3. City x week: new Bolt+ subscribers (first subscription)
         subs_weekly = dbx.query(f"""
-        WITH cz AS (
-          SELECT DISTINCT city_id, city_name
-          FROM ng_delivery_spark.dim_order_delivery
-          WHERE country_name='Czech Republic' AND city_name IN ({CITY_LIST_SQL})
-        )
-        SELECT c.city_name,
+        WITH {city_cte}
+        SELECT cm.city_name, cm.country_code,
           CAST(date_trunc('WEEK', d.bolt_plus_first_subscribed_ts) AS DATE) AS sub_week,
           COUNT(*) AS new_subscribers
         FROM ng_delivery_spark.dim_user_delivery d
-        JOIN cz c ON d.city_id = c.city_id
+        INNER JOIN city_map cm ON d.city_id = cm.city_id
         WHERE d.bolt_plus_first_subscribed_ts IS NOT NULL
           AND COALESCE(d.user_is_bot,false)=false
           AND COALESCE(d.is_user_test,false)=false
           AND COALESCE(d.user_is_employee,false)=false
           AND date_trunc('WEEK', d.bolt_plus_first_subscribed_ts) >= date_sub(date_trunc('WEEK', current_date()), 7*{N_WEEKS})
           AND date_trunc('WEEK', d.bolt_plus_first_subscribed_ts) <= current_date()
-        GROUP BY 1, 2
-        ORDER BY 1, 2
+        GROUP BY 1, 2, 3
+        ORDER BY 1, 2, 3
         """)
 
-        # ---- 4. Top providers by volume (last 4 complete weeks) + funding split
         provider_top = dbx.query(f"""
-        WITH cz_prov AS (
-          SELECT provider_id, provider_name, brand_name, city_name,
-                 COALESCE(NULLIF(TRIM(business_segment_v2),''),'Missing Segment') AS segment,
-                 COALESCE(NULLIF(TRIM(account_manager_name),''),'Unassigned') AS am
-          FROM ng_delivery_spark.dim_provider_v2
-          WHERE country_name='Czech Republic' AND city_name IN ({CITY_LIST_SQL})
+        WITH {city_cte},
+        prov AS (
+          SELECT p.provider_id, p.provider_name, p.brand_name, p.city_name, cm.country_code,
+                 COALESCE(NULLIF(TRIM(p.business_segment_v2),''),'Missing Segment') AS segment,
+                 COALESCE(NULLIF(TRIM(p.account_manager_name),''),'Unassigned') AS am
+          FROM ng_delivery_spark.dim_provider_v2 p
+          INNER JOIN city_map cm
+            ON p.city_name = cm.city_name AND p.country_name = cm.country_name
         ),
         spend AS (
-          SELECT c.provider_id,
+          SELECT c.provider_id, lower(c.country) AS country_code,
             COUNT(DISTINCT c.order_id) AS orders,
             ROUND(SUM(COALESCE(c.bolt_spend,0)),2)     AS bolt_spend,
             ROUND(SUM(COALESCE(c.provider_spend,0)),2) AS provider_spend
           FROM ng_public_spark.etl_delivery_campaign_order_metrics c
-          WHERE c.country='cz'
+          WHERE lower(c.country) IN ('cz', 'sk')
             AND c.order_created_date >= date_sub(date_trunc('WEEK', current_date()), 7*4)
             AND c.order_created_date <  date_trunc('WEEK', current_date())
-          GROUP BY c.provider_id
+          GROUP BY 1, 2
         )
-        SELECT p.provider_id, p.provider_name, p.brand_name, p.city_name, p.segment, p.am,
+        SELECT p.provider_id, p.provider_name, p.brand_name, p.city_name, p.country_code,
+          p.segment, p.am,
           COALESCE(s.orders,0) AS campaign_orders,
           COALESCE(s.bolt_spend,0) AS bolt_spend,
           COALESCE(s.provider_spend,0) AS provider_spend
-        FROM cz_prov p
-        LEFT JOIN spend s ON p.provider_id = s.provider_id
+        FROM prov p
+        LEFT JOIN spend s ON p.provider_id = s.provider_id AND p.country_code = s.country_code
         WHERE COALESCE(s.orders,0) > 0
         ORDER BY bolt_spend + provider_spend DESC
         """)
 
-        # ---- 5. City x week: campaign spend by objective (DI type mix)
         objective_weekly = dbx.query(f"""
-        WITH cz_prov AS (
-          SELECT provider_id, city_name
-          FROM ng_delivery_spark.dim_provider_v2
-          WHERE country_name='Czech Republic' AND city_name IN ({CITY_LIST_SQL})
+        WITH {city_cte},
+        prov AS (
+          SELECT p.provider_id, p.city_name, cm.country_code
+          FROM ng_delivery_spark.dim_provider_v2 p
+          INNER JOIN city_map cm
+            ON p.city_name = cm.city_name AND p.country_name = cm.country_name
         )
-        SELECT p.city_name,
+        SELECT p.city_name, p.country_code,
           CAST(date_trunc('WEEK', c.order_created_date) AS DATE) AS week_start,
           COALESCE(NULLIF(TRIM(c.spend_objective),''),'unknown') AS spend_objective,
           ROUND(SUM(COALESCE(c.bolt_spend,0)),2)     AS bolt_spend,
           ROUND(SUM(COALESCE(c.provider_spend,0)),2) AS provider_spend,
           COUNT(DISTINCT c.order_id) AS orders
         FROM ng_public_spark.etl_delivery_campaign_order_metrics c
-        JOIN cz_prov p ON c.provider_id = p.provider_id
-        WHERE c.country='cz'
+        INNER JOIN prov p ON c.provider_id = p.provider_id AND lower(c.country) = p.country_code
+        WHERE lower(c.country) IN ('cz', 'sk')
           AND c.order_created_date >= date_sub(date_trunc('WEEK', current_date()), 7*{N_WEEKS})
           AND c.order_created_date <= current_date()
-        GROUP BY 1, 2, 3
-        ORDER BY 1, 2, 4 DESC
+        GROUP BY 1, 2, 3, 4
+        ORDER BY 1, 2, 3, 5 DESC
         """)
 
-        # ---- 6. Cohort frequency (ALL users, not just new signups): join the V2 LCS
-        #      cohort table to weekly food orders -> orders-per-user by cohort & week.
         cohort_freq = dbx.query(f"""
-        WITH cz AS (
-          SELECT DISTINCT city_id, city_name
-          FROM ng_delivery_spark.dim_order_delivery
-          WHERE country_name='Czech Republic' AND city_name IN ({CITY_LIST_SQL})
-        ),
+        WITH {city_cte},
         coh AS (
-          SELECT m.week_date, m.user_id, c.city_name, m.user_cohort
+          SELECT m.week_date, m.user_id, c.city_name, c.country_code, m.user_cohort
           FROM mart_models_spark.mart_user_cohort_campaigns_lcp_weekly m
-          JOIN cz c ON m.city_id = c.city_id
-          WHERE lower(m.country_code)='cz'
+          INNER JOIN city_map c
+            ON m.city_id = c.city_id AND lower(m.country_code) = c.country_code
+          WHERE lower(m.country_code) IN ('cz', 'sk')
             AND m.week_date >= date_sub(date_trunc('WEEK', current_date()), 7*{N_WEEKS})
             AND m.week_date <= current_date()
         ),
         ord AS (
-          SELECT user_id, CAST(date_trunc('WEEK', order_created_date) AS DATE) AS wk,
-            COUNT(DISTINCT order_id) AS orders, SUM(order_gmv_eur) AS gmv
-          FROM ng_delivery_spark.dim_order_delivery
-          WHERE country_name='Czech Republic' AND delivery_vertical='food' AND order_state='delivered'
-            AND order_created_date >= date_sub(date_trunc('WEEK', current_date()), 7*{N_WEEKS})
-          GROUP BY 1, 2
+          SELECT o.user_id, CAST(date_trunc('WEEK', o.order_created_date) AS DATE) AS wk,
+            cm.city_name, cm.country_code,
+            COUNT(DISTINCT o.order_id) AS orders, SUM(o.order_gmv_eur) AS gmv
+          FROM ng_delivery_spark.dim_order_delivery o
+          INNER JOIN city_map cm
+            ON o.city_name = cm.city_name AND o.country_name = cm.country_name
+          WHERE o.delivery_vertical='food' AND o.order_state='delivered'
+            AND o.order_created_date >= date_sub(date_trunc('WEEK', current_date()), 7*{N_WEEKS})
+          GROUP BY 1, 2, 3, 4
         )
-        SELECT coh.week_date AS week_start, coh.city_name, coh.user_cohort,
+        SELECT coh.week_date AS week_start, coh.city_name, coh.country_code, coh.user_cohort,
           COUNT(DISTINCT coh.user_id) AS users,
           COUNT(DISTINCT CASE WHEN o.orders>0 THEN coh.user_id END) AS active_users,
           SUM(COALESCE(o.orders,0)) AS orders,
           ROUND(SUM(COALESCE(o.gmv,0)),2) AS gmv
         FROM coh
-        LEFT JOIN ord o ON o.user_id = coh.user_id AND o.wk = coh.week_date
-        GROUP BY 1, 2, 3
-        ORDER BY 1, 2, 3
+        LEFT JOIN ord o
+          ON o.user_id = coh.user_id AND o.wk = coh.week_date
+         AND o.city_name = coh.city_name AND o.country_code = coh.country_code
+        GROUP BY 1, 2, 3, 4
+        ORDER BY 1, 2, 3, 4
         """)
 
     weeks = sorted({r["week_start"] for r in _records(city_weekly)})
@@ -337,7 +380,6 @@ def pull() -> dict:
         return f"{y}W{w:02d}"
 
     def is_complete(dstr):
-        # week (Mon) is complete once its Sunday has fully passed
         return (date.fromisoformat(dstr) + timedelta(days=6)) < today
 
     weeks_meta = [{"start": w, "label": iso_label(w), "complete": is_complete(w)} for w in weeks]
@@ -346,7 +388,9 @@ def pull() -> dict:
     return {
         "meta": {
             "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "country": "Czech Republic",
+            "countries": COUNTRIES,
+            "default_country": "cz",
+            "country": "Czech Republic & Slovakia",
             "vertical": "food",
             "n_weeks": N_WEEKS,
             "weeks": weeks,
@@ -362,7 +406,7 @@ def pull() -> dict:
                 "activation_subs": "ng_delivery_spark.dim_user_delivery",
                 "cohort_lcp": "mart_models_spark.mart_user_cohort_campaigns_lcp_weekly",
                 "provider": "ng_delivery_spark.dim_provider_v2",
-                "campaign_spend": "ng_public_spark.etl_delivery_campaign_order_metrics (country='cz')",
+                "campaign_spend": "ng_public_spark.etl_delivery_campaign_order_metrics (country in cz, sk)",
             },
             "notes": [
                 "DI spend = campaign_spend_bolt_eur + campaign_spend_provider_eur (= campaign_discount_eur, order-attributed).",
@@ -390,8 +434,11 @@ if __name__ == "__main__":
     out.write_text(json.dumps(data, ensure_ascii=False))
     cw = data["city_weekly"]
     print(f"Wrote {out}")
-    wm = data['meta']['weeks_meta']
+    wm = data["meta"]["weeks_meta"]
     print("weeks:", ", ".join(f"{w['label']}{'' if w['complete'] else '(partial)'}" for w in wm))
     print(f"latest complete = {data['meta']['latest_complete_week']}")
+    cz_n = sum(1 for m in ROSTER.values() if m["country"] == "cz")
+    sk_n = sum(1 for m in ROSTER.values() if m["country"] == "sk")
+    print(f"roster: {cz_n} CZ + {sk_n} SK cities")
     print(f"city_weekly: {len(cw)} | activation: {len(data['activation_weekly'])} | cohort_depth: {len(data['cohort_depth'])} | "
           f"cohort_freq: {len(data['cohort_freq'])} | subs: {len(data['subs_weekly'])} | providers: {len(data['provider_top'])} | objective: {len(data['objective_weekly'])}")
