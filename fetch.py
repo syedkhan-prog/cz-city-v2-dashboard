@@ -151,9 +151,15 @@ def _run_query(name: str, sql: str):
     return name, df
 
 
-def pull() -> dict:
+BATCHES = {
+    "core": ["city_weekly", "activation_weekly", "subs_weekly", "provider_top", "objective_weekly"],
+    "cohort": ["cohort_depth", "cohort_freq"],
+}
+
+
+def _query_sqls() -> dict[str, str]:
     city_cte = _city_map_cte()
-    queries = {
+    return {
         "city_weekly": f"""
         WITH {city_cte},
         base AS (
@@ -377,25 +383,23 @@ def pull() -> dict:
         """,
     }
 
+
+def _run_queries(queries: dict[str, str]) -> dict:
     print(f"Pulling {len(queries)} queries in parallel ({len(ROSTER)} cities)…", flush=True)
     t0 = time.time()
     frames: dict = {}
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=min(4, len(queries))) as pool:
         futures = [pool.submit(_run_query, name, sql) for name, sql in queries.items()]
         for fut in as_completed(futures):
             name, df = fut.result()
             frames[name] = df
     print(f"All queries done in {time.time() - t0:.0f}s", flush=True)
+    return frames
 
-    city_weekly = frames["city_weekly"]
-    activation_weekly = frames["activation_weekly"]
-    cohort_depth = frames["cohort_depth"]
-    subs_weekly = frames["subs_weekly"]
-    provider_top = frames["provider_top"]
-    objective_weekly = frames["objective_weekly"]
-    cohort_freq = frames["cohort_freq"]
 
-    weeks = sorted({r["week_start"] for r in _records(city_weekly)})
+def _build_payload(parts: dict[str, list]) -> dict:
+    city_weekly = parts["city_weekly"]
+    weeks = sorted({r["week_start"] for r in city_weekly})
     today = date.today()
 
     def iso_label(dstr):
@@ -441,27 +445,61 @@ def pull() -> dict:
                 "IC vs non-IC merchant split has no confirmed flag in dim_provider_v2 -> omitted (open item).",
             ],
         },
-        "city_weekly": _records(city_weekly),
-        "activation_weekly": _records(activation_weekly),
-        "cohort_depth": _records(cohort_depth),
-        "cohort_freq": _records(cohort_freq),
-        "subs_weekly": _records(subs_weekly),
-        "provider_top": _records(provider_top),
-        "objective_weekly": _records(objective_weekly),
+        **parts,
     }
 
 
+def pull_batch(batch: str) -> dict[str, list]:
+    sqls = _query_sqls()
+    selected = {k: sqls[k] for k in BATCHES[batch]}
+    frames = _run_queries(selected)
+    return {k: _records(frames[k]) for k in selected}
+
+
+def pull() -> dict:
+    parts: dict[str, list] = {}
+    for batch in BATCHES:
+        parts.update(pull_batch(batch))
+    return _build_payload(parts)
+
+
+def merge_partials(paths: list[Path]) -> dict:
+    parts: dict[str, list] = {}
+    for path in paths:
+        parts.update(json.loads(path.read_text(encoding="utf-8")))
+    required = set(BATCHES["core"]) | set(BATCHES["cohort"])
+    missing = required - set(parts)
+    if missing:
+        raise RuntimeError(f"Missing datasets after merge: {sorted(missing)}")
+    return _build_payload(parts)
+
+
 if __name__ == "__main__":
-    data = pull()
-    out = Path(__file__).resolve().parent / "data.json"
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--batch", choices=[*BATCHES, "all"], default="all")
+    parser.add_argument("--out", type=Path, help="Write JSON (partial batch or full data.json)")
+    parser.add_argument("--merge", nargs="+", type=Path, help="Merge partial batch files into data.json")
+    args = parser.parse_args()
+
+    here = Path(__file__).resolve().parent
+    if args.merge:
+        data = merge_partials(args.merge)
+        out = args.out or here / "data.json"
+    elif args.batch == "all":
+        data = pull()
+        out = args.out or here / "data.json"
+    else:
+        data = pull_batch(args.batch)
+        out = args.out or here / f"partial-{args.batch}.json"
+
     out.write_text(json.dumps(data, ensure_ascii=False))
-    cw = data["city_weekly"]
     print(f"Wrote {out}")
-    wm = data["meta"]["weeks_meta"]
-    print("weeks:", ", ".join(f"{w['label']}{'' if w['complete'] else '(partial)'}" for w in wm))
-    print(f"latest complete = {data['meta']['latest_complete_week']}")
-    cz_n = sum(1 for m in ROSTER.values() if m["country"] == "cz")
-    sk_n = sum(1 for m in ROSTER.values() if m["country"] == "sk")
-    print(f"roster: {cz_n} CZ + {sk_n} SK cities")
-    print(f"city_weekly: {len(cw)} | activation: {len(data['activation_weekly'])} | cohort_depth: {len(data['cohort_depth'])} | "
-          f"cohort_freq: {len(data['cohort_freq'])} | subs: {len(data['subs_weekly'])} | providers: {len(data['provider_top'])} | objective: {len(data['objective_weekly'])}")
+    if "meta" in data:
+        wm = data["meta"]["weeks_meta"]
+        print("weeks:", ", ".join(f"{w['label']}{'' if w['complete'] else '(partial)'}" for w in wm))
+        print(f"latest complete = {data['meta']['latest_complete_week']}")
+        print(f"generated_at = {data['meta']['generated_at']}")
+    else:
+        print("keys:", ", ".join(sorted(data)))
