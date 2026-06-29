@@ -1,6 +1,6 @@
-# CZ City V2 Discount Setup — Impact Monitor
+# New Cities Launch Tracker
 
-Weekly dashboard for the CZ City V2 discount-setup migration across 37 cities.
+Weekly dashboard for CZ + SK City V2 discount-setup migration cities.
 
 ## Architecture
 
@@ -20,16 +20,6 @@ https://cz-city-v2-dashboard.boltable.eu   ← team URL (NetBird VPN)
 
 **GitHub Pages (full version):** https://syedkhan-prog.github.io/cz-city-v2-dashboard/
 
-## Local dev
-
-```bash
-cd cz_city_v2_dashboard
-pip install -r requirements.txt
-python fetch.py          # OAuth locally, or set DATABRICKS_TOKEN
-python build.py          # also writes ../CZ_City_V2_Setup_Dashboard.html
-python app.py            # http://localhost:8082 — serves docs/ (with definitions)
-```
-
 ## Personal repo secrets (Settings → Secrets → Actions)
 
 | Secret | Purpose |
@@ -41,4 +31,4 @@ Manual refresh: **Actions → Refresh CZ City V2 Dashboard → Run workflow**.
 
 ## Refresh schedule
 
-Every **Monday at 12:00 Europe/Prague** (subtitle on the dashboard matches this).
+Every **Monday at 12:00 Europe/Prague**. Queries ~30–45 min from GitHub Actions (56 cities).

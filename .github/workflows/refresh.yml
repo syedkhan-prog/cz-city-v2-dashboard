@@ -20,7 +20,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +32,9 @@ jobs:
           cache-dependency-path: requirements.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Pull data from Databricks and rebuild HTML
         env:
@@ -40,6 +42,7 @@ jobs:
         run: |
           python fetch.py
           python build.py --no-local
+          echo "generated_at=$(python -c "import json;print(json.load(open('data.json'))['meta']['generated_at'])")"
 
       - name: Commit refreshed data (deploys via deploy-boltable.yml)
         run: |
