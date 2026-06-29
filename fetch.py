@@ -12,6 +12,8 @@ derives WoW / trailing-4-week baseline / RYG from these weekly rows.
 from __future__ import annotations
 
 import json
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -141,10 +143,18 @@ def _records(df):
     return rows
 
 
+def _run_query(name: str, sql: str):
+    t0 = time.time()
+    with DBX() as dbx:
+        df = dbx.query(sql)
+    print(f"  {name}: {time.time() - t0:.0f}s ({len(df)} rows)", flush=True)
+    return name, df
+
+
 def pull() -> dict:
     city_cte = _city_map_cte()
-    with DBX() as dbx:
-        city_weekly = dbx.query(f"""
+    queries = {
+        "city_weekly": f"""
         WITH {city_cte},
         base AS (
           SELECT
@@ -181,9 +191,8 @@ def pull() -> dict:
         FROM base
         GROUP BY 1, 2, 3
         ORDER BY 1, 2, 3
-        """)
-
-        activation_weekly = dbx.query(f"""
+        """,
+        "activation_weekly": f"""
         WITH {city_cte},
         u AS (
           SELECT cm.city_name, cm.country_code,
@@ -209,9 +218,8 @@ def pull() -> dict:
         FROM u
         GROUP BY 1, 2, 3
         ORDER BY 1, 2, 3
-        """)
-
-        cohort_depth = dbx.query(f"""
+        """,
+        "cohort_depth": f"""
         WITH {city_cte},
         su AS (
           SELECT d.user_id, cm.city_name, cm.country_code,
@@ -263,9 +271,8 @@ def pull() -> dict:
         FROM ucnt
         GROUP BY 1, 2, 3
         ORDER BY 1, 2, 3
-        """)
-
-        subs_weekly = dbx.query(f"""
+        """,
+        "subs_weekly": f"""
         WITH {city_cte}
         SELECT cm.city_name, cm.country_code,
           CAST(date_trunc('WEEK', d.bolt_plus_first_subscribed_ts) AS DATE) AS sub_week,
@@ -275,14 +282,13 @@ def pull() -> dict:
         WHERE d.bolt_plus_first_subscribed_ts IS NOT NULL
           AND COALESCE(d.user_is_bot,false)=false
           AND COALESCE(d.is_user_test,false)=false
-          AND COALESCE(d.user_is_employee,false)=false
+          AND COALESCE(d.is_user_employee,false)=false
           AND date_trunc('WEEK', d.bolt_plus_first_subscribed_ts) >= date_sub(date_trunc('WEEK', current_date()), 7*{N_WEEKS})
           AND date_trunc('WEEK', d.bolt_plus_first_subscribed_ts) <= current_date()
         GROUP BY 1, 2, 3
         ORDER BY 1, 2, 3
-        """)
-
-        provider_top = dbx.query(f"""
+        """,
+        "provider_top": f"""
         WITH {city_cte},
         prov AS (
           SELECT p.provider_id, p.provider_name, p.brand_name, p.city_name, cm.country_code,
@@ -312,9 +318,8 @@ def pull() -> dict:
         LEFT JOIN spend s ON p.provider_id = s.provider_id AND p.country_code = s.country_code
         WHERE COALESCE(s.orders,0) > 0
         ORDER BY bolt_spend + provider_spend DESC
-        """)
-
-        objective_weekly = dbx.query(f"""
+        """,
+        "objective_weekly": f"""
         WITH {city_cte},
         prov AS (
           SELECT p.provider_id, p.city_name, cm.country_code
@@ -335,9 +340,8 @@ def pull() -> dict:
           AND c.order_created_date <= current_date()
         GROUP BY 1, 2, 3, 4
         ORDER BY 1, 2, 3, 5 DESC
-        """)
-
-        cohort_freq = dbx.query(f"""
+        """,
+        "cohort_freq": f"""
         WITH {city_cte},
         coh AS (
           SELECT m.week_date, m.user_id, c.city_name, c.country_code, m.user_cohort
@@ -370,7 +374,26 @@ def pull() -> dict:
          AND o.city_name = coh.city_name AND o.country_code = coh.country_code
         GROUP BY 1, 2, 3, 4
         ORDER BY 1, 2, 3, 4
-        """)
+        """,
+    }
+
+    print(f"Pulling {len(queries)} queries in parallel ({len(ROSTER)} cities)…", flush=True)
+    t0 = time.time()
+    frames: dict = {}
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = [pool.submit(_run_query, name, sql) for name, sql in queries.items()]
+        for fut in as_completed(futures):
+            name, df = fut.result()
+            frames[name] = df
+    print(f"All queries done in {time.time() - t0:.0f}s", flush=True)
+
+    city_weekly = frames["city_weekly"]
+    activation_weekly = frames["activation_weekly"]
+    cohort_depth = frames["cohort_depth"]
+    subs_weekly = frames["subs_weekly"]
+    provider_top = frames["provider_top"]
+    objective_weekly = frames["objective_weekly"]
+    cohort_freq = frames["cohort_freq"]
 
     weeks = sorted({r["week_start"] for r in _records(city_weekly)})
     today = date.today()
