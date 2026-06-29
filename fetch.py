@@ -449,6 +449,14 @@ def _build_payload(parts: dict[str, list]) -> dict:
     }
 
 
+def pull_query(name: str) -> dict[str, list]:
+    sqls = _query_sqls()
+    if name not in sqls:
+        raise ValueError(f"Unknown query: {name}")
+    frames = _run_queries({name: sqls[name]})
+    return {name: _records(frames[name])}
+
+
 def pull_batch(batch: str) -> dict[str, list]:
     sqls = _query_sqls()
     selected = {k: sqls[k] for k in BATCHES[batch]}
@@ -478,6 +486,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--query", choices=list(_query_sqls().keys()))
     parser.add_argument("--batch", choices=[*BATCHES, "all"], default="all")
     parser.add_argument("--out", type=Path, help="Write JSON (partial batch or full data.json)")
     parser.add_argument("--merge", nargs="+", type=Path, help="Merge partial batch files into data.json")
@@ -487,6 +496,9 @@ if __name__ == "__main__":
     if args.merge:
         data = merge_partials(args.merge)
         out = args.out or here / "data.json"
+    elif args.query:
+        data = pull_query(args.query)
+        out = args.out or here / f"partial-{args.query}.json"
     elif args.batch == "all":
         data = pull()
         out = args.out or here / "data.json"
