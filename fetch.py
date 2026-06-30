@@ -288,7 +288,7 @@ def _query_sqls() -> dict[str, str]:
         WHERE d.bolt_plus_first_subscribed_ts IS NOT NULL
           AND COALESCE(d.user_is_bot,false)=false
           AND COALESCE(d.is_user_test,false)=false
-          AND COALESCE(d.is_user_employee,false)=false
+          AND COALESCE(d.user_is_employee,false)=false
           AND date_trunc('WEEK', d.bolt_plus_first_subscribed_ts) >= date_sub(date_trunc('WEEK', current_date()), 7*{N_WEEKS})
           AND date_trunc('WEEK', d.bolt_plus_first_subscribed_ts) <= current_date()
         GROUP BY 1, 2, 3
