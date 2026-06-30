@@ -1,14 +1,11 @@
 name: Refresh CZ City V2 Dashboard
 
-# Runs on syedkhan-prog/cz-city-v2-dashboard.
+# Primary refresh: local Monday 11:00 — scripts/refresh_and_push.sh (+ launchd or n8n SSH).
 # Push to main triggers deploy-boltable.yml → boltable/cz-city-v2-dashboard.
+# This workflow is a manual fallback only (GitHub → Databricks is slow/unreliable).
 
 on:
   workflow_dispatch:
-  schedule:
-    # Every Monday 12:00 Europe/Prague
-    - cron: "0 12 * * 1"
-      timezone: "Europe/Prague"
 
 permissions:
   contents: write
@@ -18,63 +15,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  fetch:
-    strategy:
-      fail-fast: false
-      matrix:
-        query:
-          - city_weekly
-          - activation_weekly
-          - subs_weekly
-          - provider_top
-          - objective_weekly
-          - cohort_depth
-          - cohort_freq
+  refresh:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: requirements.txt
+
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      - name: Pull ${{ matrix.query }} from Databricks
+        run: pip install -r requirements.txt
+
+      - name: Pull all data from Databricks (single job, local-style)
         env:
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: python fetch.py --query ${{ matrix.query }} --out partial-${{ matrix.query }}.json
-      - uses: actions/upload-artifact@v4
-        with:
-          name: partial-${{ matrix.query }}
-          path: partial-${{ matrix.query }}.json
-          retention-days: 1
-
-  assemble:
-    needs: fetch
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-          pattern: partial-*
-          merge-multiple: true
-      - name: Merge, build HTML, commit
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          ls -la artifacts/
-          python fetch.py --merge artifacts/partial-*.json --out data.json
+          python fetch.py
           python build.py --no-local
-          echo "generated_at=$(python -c "import json;print(json.load(open('data.json'))['meta']['generated_at'])")"
+
+      - name: Commit refreshed data
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data.json docs/index.html boltable/index.html
