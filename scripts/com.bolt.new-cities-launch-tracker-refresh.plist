@@ -6,8 +6,11 @@
   <string>com.bolt.new-cities-launch-tracker-refresh</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/bin/bash</string>
-    <string>__REPO_ROOT__/scripts/refresh_and_push.sh</string>
+    <string>__LAUNCHER__</string>
+  </array>
+  <key>LimitLoadToSessionType</key>
+  <array>
+    <string>Aqua</string>
   </array>
   <key>StartCalendarInterval</key>
   <dict>
