@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 
 HERE = Path(__file__).resolve().parent
 
@@ -33,8 +33,9 @@ def index() -> HTMLResponse:
             "<h1>Dashboard not built yet</h1><p>Run <code>python fetch.py && python build.py</code>.</p>",
             status_code=503,
         )
-    return HTMLResponse(
-        path.read_text(encoding="utf-8"),
+    return FileResponse(
+        path,
+        media_type="text/html",
         headers={"Cache-Control": "no-store"},
     )
 
