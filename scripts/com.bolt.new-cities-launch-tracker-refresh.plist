@@ -6,6 +6,7 @@
   <string>com.bolt.new-cities-launch-tracker-refresh</string>
   <key>ProgramArguments</key>
   <array>
+    <string>/bin/bash</string>
     <string>__LAUNCHER__</string>
   </array>
   <key>LimitLoadToSessionType</key>
@@ -28,7 +29,9 @@
   <key>EnvironmentVariables</key>
   <dict>
     <key>PATH</key>
-    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+    <string>/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+    <key>DATABRICKS_HTTP_PATH</key>
+    <string>sql/protocolv1/o/2472566184436351/0505-112942-d3yviznw</string>
   </dict>
 </dict>
 </plist>

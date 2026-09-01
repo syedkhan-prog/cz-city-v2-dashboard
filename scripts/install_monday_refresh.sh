@@ -11,7 +11,9 @@ LAUNCHER="${BIN_DIR}/new-cities-launch-tracker-refresh"
 mkdir -p "$BIN_DIR"
 chmod +x "$ROOT/scripts/refresh_and_push.sh"
 
-# Launcher lives outside ~/Downloads — macOS blocks launchd from executing scripts in Downloads.
+# Launcher lives outside ~/Downloads — macOS TCC blocks launchd from *executing*
+# scripts inside Downloads (exit 126 / Operation not permitted). The wrapper is
+# a full copy of the refresh job with ROOT baked in; it only *reads* the repo.
 sed "s|__REPO_ROOT__|$ROOT|g" "$ROOT/scripts/launchd_wrapper.sh" > "$LAUNCHER"
 chmod +x "$LAUNCHER"
 

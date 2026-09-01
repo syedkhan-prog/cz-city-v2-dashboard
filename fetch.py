@@ -1,10 +1,10 @@
 """Pull City V2 discount-setup monitoring data from Databricks (CZ + SK).
 
 Sources (all real, verified):
-  - ng_delivery_spark.dim_order_delivery        order-level orders/GMV/discount/campaign spend/Bolt+
-  - ng_delivery_spark.dim_user_delivery         signup -> food activation -> Bolt+ subscription
-  - ng_delivery_spark.dim_provider_v2           provider master (city, segment, AM)
-  - ng_public_spark.etl_delivery_campaign_order_metrics  campaign spend by objective / provider
+  - main.ng_delivery.dim_order_delivery        order-level orders/GMV/discount/campaign spend/Bolt+
+  - main.ng_delivery.dim_user_delivery         signup -> food activation -> Bolt+ subscription
+  - main.ng_delivery.dim_provider_v2           provider master (city, segment, AM)
+  - main.ng_public.etl_delivery_campaign_order_metrics  campaign spend by objective / provider
 
 Metrics are computed at city x ISO-week (Monday-anchored). The dashboard front-end
 derives WoW / trailing-4-week baseline / RYG from these weekly rows.
@@ -118,7 +118,7 @@ def _city_map_cte() -> str:
         ),
         city_map AS (
           SELECT DISTINCT o.country_name, o.city_id, o.city_name, r.country_code
-          FROM ng_delivery_spark.dim_order_delivery o
+          FROM main.ng_delivery.dim_order_delivery o
           INNER JOIN roster r
             ON o.country_name = r.country_name AND o.city_name = r.city_name
         )"""
@@ -175,7 +175,7 @@ def _query_sqls() -> dict[str, str]:
             CASE WHEN o.is_bolt_plus_order THEN o.order_gmv_eur ELSE 0 END AS bp_gmv,
             o.is_bolt_plus_order, o.is_first_food_order,
             o.has_food_order_in_next_30days_same_city  AS repeat30
-          FROM ng_delivery_spark.dim_order_delivery o
+          FROM main.ng_delivery.dim_order_delivery o
           INNER JOIN city_map cm
             ON o.city_name = cm.city_name AND o.country_name = cm.country_name
           WHERE o.delivery_vertical = 'food'
@@ -205,7 +205,7 @@ def _query_sqls() -> dict[str, str]:
             CAST(date_trunc('WEEK', d.user_sign_up_authorised_ts) AS DATE) AS signup_week,
             d.user_sign_up_authorised_ts AS su_ts,
             d.food_activation_ts AS act_ts
-          FROM ng_delivery_spark.dim_user_delivery d
+          FROM main.ng_delivery.dim_user_delivery d
           INNER JOIN city_map cm ON d.city_id = cm.city_id
           WHERE d.user_sign_up_authorised_ts IS NOT NULL
             AND COALESCE(d.user_is_bot,false)=false
@@ -231,7 +231,7 @@ def _query_sqls() -> dict[str, str]:
           SELECT d.user_id, cm.city_name, cm.country_code,
             to_date(d.user_sign_up_authorised_ts) AS sd,
             CAST(date_trunc('WEEK', d.user_sign_up_authorised_ts) AS DATE) AS signup_week
-          FROM ng_delivery_spark.dim_user_delivery d
+          FROM main.ng_delivery.dim_user_delivery d
           INNER JOIN city_map cm ON d.city_id = cm.city_id
           WHERE d.user_sign_up_authorised_ts IS NOT NULL
             AND COALESCE(d.user_is_bot,false)=false
@@ -243,7 +243,7 @@ def _query_sqls() -> dict[str, str]:
         ),
         ord AS (
           SELECT o.user_id, o.order_created_date
-          FROM ng_delivery_spark.dim_order_delivery o
+          FROM main.ng_delivery.dim_order_delivery o
           INNER JOIN city_map cm
             ON o.city_name = cm.city_name AND o.country_name = cm.country_name
           WHERE o.delivery_vertical='food' AND o.order_state='delivered'
@@ -283,7 +283,7 @@ def _query_sqls() -> dict[str, str]:
         SELECT cm.city_name, cm.country_code,
           CAST(date_trunc('WEEK', d.bolt_plus_first_subscribed_ts) AS DATE) AS sub_week,
           COUNT(*) AS new_subscribers
-        FROM ng_delivery_spark.dim_user_delivery d
+        FROM main.ng_delivery.dim_user_delivery d
         INNER JOIN city_map cm ON d.city_id = cm.city_id
         WHERE d.bolt_plus_first_subscribed_ts IS NOT NULL
           AND COALESCE(d.user_is_bot,false)=false
@@ -300,7 +300,7 @@ def _query_sqls() -> dict[str, str]:
           SELECT p.provider_id, p.provider_name, p.brand_name, p.city_name, cm.country_code,
                  COALESCE(NULLIF(TRIM(p.business_segment_v2),''),'Missing Segment') AS segment,
                  COALESCE(NULLIF(TRIM(p.account_manager_name),''),'Unassigned') AS am
-          FROM ng_delivery_spark.dim_provider_v2 p
+          FROM main.ng_delivery.dim_provider_v2 p
           INNER JOIN city_map cm
             ON p.city_name = cm.city_name AND p.country_name = cm.country_name
         ),
@@ -309,7 +309,7 @@ def _query_sqls() -> dict[str, str]:
             COUNT(DISTINCT c.order_id) AS orders,
             ROUND(SUM(COALESCE(c.bolt_spend,0)),2)     AS bolt_spend,
             ROUND(SUM(COALESCE(c.provider_spend,0)),2) AS provider_spend
-          FROM ng_public_spark.etl_delivery_campaign_order_metrics c
+          FROM main.ng_public.etl_delivery_campaign_order_metrics c
           WHERE lower(c.country) IN ('cz', 'sk')
             AND c.order_created_date >= date_sub(date_trunc('WEEK', current_date()), 7*4)
             AND c.order_created_date <  date_trunc('WEEK', current_date())
@@ -329,7 +329,7 @@ def _query_sqls() -> dict[str, str]:
         WITH {city_cte},
         prov AS (
           SELECT p.provider_id, p.city_name, cm.country_code
-          FROM ng_delivery_spark.dim_provider_v2 p
+          FROM main.ng_delivery.dim_provider_v2 p
           INNER JOIN city_map cm
             ON p.city_name = cm.city_name AND p.country_name = cm.country_name
         )
@@ -339,7 +339,7 @@ def _query_sqls() -> dict[str, str]:
           ROUND(SUM(COALESCE(c.bolt_spend,0)),2)     AS bolt_spend,
           ROUND(SUM(COALESCE(c.provider_spend,0)),2) AS provider_spend,
           COUNT(DISTINCT c.order_id) AS orders
-        FROM ng_public_spark.etl_delivery_campaign_order_metrics c
+        FROM main.ng_public.etl_delivery_campaign_order_metrics c
         INNER JOIN prov p ON c.provider_id = p.provider_id AND lower(c.country) = p.country_code
         WHERE lower(c.country) IN ('cz', 'sk')
           AND c.order_created_date >= date_sub(date_trunc('WEEK', current_date()), 7*{N_WEEKS})
@@ -351,7 +351,7 @@ def _query_sqls() -> dict[str, str]:
         WITH {city_cte},
         coh AS (
           SELECT m.week_date, m.user_id, c.city_name, c.country_code, m.user_cohort
-          FROM mart_models_spark.mart_user_cohort_campaigns_lcp_weekly m
+          FROM main.mart_models.mart_user_cohort_campaigns_lcp_weekly m
           INNER JOIN city_map c
             ON m.city_id = c.city_id AND lower(m.country_code) = c.country_code
           WHERE lower(m.country_code) IN ('cz', 'sk')
@@ -362,7 +362,7 @@ def _query_sqls() -> dict[str, str]:
           SELECT o.user_id, CAST(date_trunc('WEEK', o.order_created_date) AS DATE) AS wk,
             cm.city_name, cm.country_code,
             COUNT(DISTINCT o.order_id) AS orders, SUM(o.order_gmv_eur) AS gmv
-          FROM ng_delivery_spark.dim_order_delivery o
+          FROM main.ng_delivery.dim_order_delivery o
           INNER JOIN city_map cm
             ON o.city_name = cm.city_name AND o.country_name = cm.country_name
           WHERE o.delivery_vertical='food' AND o.order_state='delivered'
@@ -429,11 +429,11 @@ def _build_payload(parts: dict[str, list]) -> dict:
             "di_pct_def": "DI% = campaign discount (campaign_spend_bolt_eur + campaign_spend_provider_eur) / gross GMV (order_gmv_eur). Matches Looker 'campaign_discount_gmv_share'.",
             "roster": ROSTER,
             "sources": {
-                "orders_gmv_di": "ng_delivery_spark.dim_order_delivery (delivery_vertical='food')",
-                "activation_subs": "ng_delivery_spark.dim_user_delivery",
-                "cohort_lcp": "mart_models_spark.mart_user_cohort_campaigns_lcp_weekly",
-                "provider": "ng_delivery_spark.dim_provider_v2",
-                "campaign_spend": "ng_public_spark.etl_delivery_campaign_order_metrics (country in cz, sk)",
+                "orders_gmv_di": "main.ng_delivery.dim_order_delivery (delivery_vertical='food')",
+                "activation_subs": "main.ng_delivery.dim_user_delivery",
+                "cohort_lcp": "main.mart_models.mart_user_cohort_campaigns_lcp_weekly",
+                "provider": "main.ng_delivery.dim_provider_v2",
+                "campaign_spend": "main.ng_public.etl_delivery_campaign_order_metrics (country in cz, sk)",
             },
             "notes": [
                 "DI spend = campaign_spend_bolt_eur + campaign_spend_provider_eur (= campaign_discount_eur, order-attributed).",
